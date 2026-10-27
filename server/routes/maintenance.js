@@ -3,6 +3,7 @@ const router = express.Router();
 const Maintenance = require('../models/Maintenance');
 const Property = require('../models/Property');
 const auth = require('../middleware/auth');
+const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 
@@ -53,6 +54,7 @@ router.put('/:id', auth, async (req, res) => {
   if(req.body.status) m.status = req.body.status;
   if(req.body.note !== undefined) m.note = req.body.note;
   await m.save();
+  await notify(m.tenant?._id||m.tenant, 'Maintenance '+(req.body.status||'updated'), 'Your maintenance request for "'+(m.property?m.property.title:'your property')+'" is now '+(req.body.status||'updated')+'.', 'info');
   if(m.tenant && m.tenant.email && req.body.status){
     try{
       await sendEmail(m.tenant.email, 'Maintenance Update: '+req.body.status,

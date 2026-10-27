@@ -5,6 +5,7 @@ const Rent = require('../models/Rent');
 const Property = require('../models/Property');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 
@@ -32,6 +33,7 @@ router.post('/', auth, async (req,res)=>{
         'Hi '+tenant.fullName+',\n\nRent of Rs.'+amount+' for '+month+' ('+(prop?prop.title:'')+') is due.\nPlease pay from your dashboard.\n\n- RealEstate Management System');
     }catch(e){ console.log('Rent due email failed:', e.message); }
     res.json(rec);
+    await notify(tenant._id, 'Rent Due - '+month, 'Rent of Rs.'+amount+' for '+month+' is due. Please pay from your dashboard.', 'warning');
   }catch(e){ res.status(500).json({ message: e.message }); }
 });
 

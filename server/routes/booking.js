@@ -3,6 +3,7 @@ const router = express.Router();
 const Booking = require('../models/Booking');
 const Property = require('../models/Property');
 const auth = require('../middleware/auth');
+const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 
@@ -51,6 +52,7 @@ router.put('/:id', auth, async (req, res) => {
   }
   bk.status = status;
   await bk.save();
+  await notify(bk.tenant?._id||bk.tenant, 'Booking '+String(status).toUpperCase(), 'Your booking for "'+(bk.property?bk.property.title:'a property')+'" has been '+status+'.', status==='approved'?'success':'info');
   if(bk.tenant && bk.tenant.email){
     try{
       const ok = status==='approved';

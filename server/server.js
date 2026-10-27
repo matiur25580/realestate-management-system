@@ -18,6 +18,7 @@ app.use('/api/leases', require('./routes/lease'));
 app.use('/api/analytics', require('./routes/analytics'))
 app.use('/api/users', require('./routes/users'))
 app.use('/api/export', require('./routes/export'));;;
+app.use('/api/notifications', require('./routes/notification'));
 app.get('/', (req,res)=> res.send('RealEstate API Running'));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, ()=> console.log(`Server running on port ${PORT}`));

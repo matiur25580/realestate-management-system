@@ -4,6 +4,7 @@ const Lease = require('../models/Lease');
 const Property = require('../models/Property');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 
@@ -39,6 +40,7 @@ router.post('/', auth, async (req,res)=>{
         'Hi '+tenant.fullName+',\n\nA lease agreement has been created for "'+(prop?prop.title:'')+'".\nPeriod: '+startDate+' to '+endDate+'\nMonthly Rent: Rs.'+monthlyRent+'\nDeposit: Rs.'+(deposit||0)+'\n\nPlease check your dashboard.\n\n- RealEstate Management System');
     }catch(e){ console.log('Lease email failed:', e.message); }
     res.json(lease);
+    await notify(tenant._id, 'New Lease Agreement', 'A new lease ('+startDate+' to '+endDate+', Rs.'+monthlyRent+'/month) has been created for you. Check your dashboard.', 'success');
   }catch(e){ res.status(500).json({message:e.message}); }
 });
 

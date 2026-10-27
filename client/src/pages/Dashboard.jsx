@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useToast } from '../context/ToastContext';
 import ThemeToggle from '../components/ThemeToggle';
+import NotificationBell from '../components/NotificationBell';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -177,7 +178,7 @@ export default function Dashboard(){
           </div>
           <div style={{color:'var(--app-muted)',fontSize:13,marginTop:4}}>Welcome, {user?.fullName}</div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:10}}><ThemeToggle /><button onClick={()=>{logout(); nav('/login',{replace:true});}} style={btn('#ef4444')}>Logout</button></div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}><NotificationBell role={role} /><ThemeToggle /><button onClick={()=>{logout(); nav('/login',{replace:true});}} style={btn('#ef4444')}>Logout</button></div>
       </div>
       <p style={{color:'var(--app-muted)'}}>ID: {user?.uniqueId}</p>
 
