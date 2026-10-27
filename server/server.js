@@ -13,6 +13,8 @@ app.use('/api/bookings', require('./routes/booking'));
 app.use('/api/maintenance', require('./routes/maintenance'));
 app.use('/api/rents', require('./routes/rent'));
 app.use('/api/reviews', require('./routes/review'));
+app.use('/api/wishlist', require('./routes/wishlist'));
+app.use('/api/leases', require('./routes/lease'));
 app.use('/api/analytics', require('./routes/analytics'));
 app.get('/', (req,res)=> res.send('RealEstate API Running'));
 const PORT = process.env.PORT || 5000;

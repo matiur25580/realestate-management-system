@@ -2,11 +2,14 @@ import { useEffect, useState } from 'react';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const uidFromToken = ()=>{ try{ const t=localStorage.getItem('token'); return JSON.parse(atob(t.split('.')[1])).id; }catch(e){ return null; } };
 const card = { background:'#1e293b', padding:'14px', borderRadius:'10px', minWidth:'130px', flex:'1' };
 const inp = { padding:'8px', borderRadius:'6px', border:'1px solid #475569' };
 const btn = (bg)=> ({ background:bg, color:'#fff', border:'none', padding:'8px 16px', borderRadius:'6px', cursor:'pointer' });
+const COLORS = ['#22c55e','#f59e0b','#ef4444','#3b82f6','#8b5cf6'];
+const fmtD = (d)=> d ? new Date(d).toLocaleDateString() : '';
 
 export default function Dashboard(){
   const { user, logout } = useAuth();
@@ -23,15 +26,19 @@ export default function Dashboard(){
   const [bookings, setBookings] = useState([]);
   const [maint, setMaint] = useState([]);
   const [rents, setRents] = useState([]);
+  const [leases, setLeases] = useState([]);
   const [stats, setStats] = useState(null);
+  const [charts, setCharts] = useState(null);
   const [search, setSearch] = useState('');
   const [ftype, setFtype] = useState('');
   const [fcity, setFcity] = useState('');
   const [form, setForm] = useState({ title:'', type:'Flat', price:'', area:'', address:'', city:'', image:'', ownerEmailOrId:'' });
   const [rentForm, setRentForm] = useState({ propertyId:'', tenantEmailOrId:'', amount:'', month:'' });
+  const [leaseForm, setLeaseForm] = useState({ propertyId:'', tenantEmailOrId:'', startDate:'', endDate:'', monthlyRent:'', deposit:'', terms:'' });
   const [revSummary, setRevSummary] = useState({});
   const [revFor, setRevFor] = useState(null);
   const [revList, setRevList] = useState([]);
+  const [wishItems, setWishItems] = useState([]);
 
   const load = async ()=>{
     try{
@@ -47,19 +54,24 @@ export default function Dashboard(){
         setBookings((await api.get('/bookings/my')).data);
         setMaint((await api.get('/maintenance/my')).data);
         setRents((await api.get('/rents/my')).data);
+        setLeases((await api.get('/leases/my')).data);
+        setWishItems((await api.get('/wishlist/my')).data.filter(x=>x.property));
       } else if(isMaint){
         setMaint((await api.get('/maintenance/all')).data);
       } else {
         setBookings((await api.get('/bookings/all')).data);
         setMaint((await api.get('/maintenance/all')).data);
         setRents((await api.get('/rents/all')).data);
+        setLeases((await api.get('/leases/all')).data);
         setStats((await api.get('/analytics/summary')).data);
+        setCharts((await api.get('/analytics/charts')).data);
       }
     }catch(e){}
   };
   useEffect(()=>{ load(); },[]);
 
   const myProps = isOwner ? props.filter(p=> String(p.ownerId)===String(uid) || String(p.owner)===String(uid)) : props;
+  const wishIds = wishItems.map(w=>String(w.property._id));
 
   const addProp = async (e)=>{
     e.preventDefault();
@@ -90,6 +102,20 @@ export default function Dashboard(){
     }catch(err){ alert(err.response?.data?.message || 'Failed'); }
   };
   const markRentPaid = async (id)=>{ await api.put('/rents/'+id, { status:'paid' }); load(); };
+  const addLease = async (e)=>{
+    e.preventDefault();
+    try{
+      await api.post('/leases', leaseForm);
+      setLeaseForm({ propertyId:'', tenantEmailOrId:'', startDate:'', endDate:'', monthlyRent:'', deposit:'', terms:'' });
+      load(); alert('Lease created, tenant ke email geche');
+    }catch(err){ alert(err.response?.data?.message || 'Failed'); }
+  };
+  const updateLease = async (id, status)=>{ if(!confirm('Lease '+status+'?')) return; await api.put('/leases/'+id, { status }); load(); };
+  const toggleWish = async (pid)=>{
+    const res = await api.post('/wishlist', { propertyId: pid });
+    if(res.data.saved){ const w = await api.get('/wishlist/my'); setWishItems(w.data.filter(x=>x.property)); }
+    else setWishItems(wishItems.filter(w=>String(w.property._id)!==String(pid)));
+  };
 
   const addReview = async (pid)=>{
     const rating = prompt('Rating (1-5):'); if(!rating) return;
@@ -125,12 +151,11 @@ export default function Dashboard(){
 
   const tabs = isMaint
     ? [['tasks','My Tasks'],['properties','Properties']]
-    : [['properties', isOwner?'My Properties':'Properties'],
-       ['bookings', isTenant?'My Bookings':'Bookings'],
-       ['maintenance', isTenant?'My Maintenance':'Maintenance'],
-       ['rents', isTenant?'My Rents':'Rents']];
+    : isTenant
+      ? [['properties','Properties'],['wishlist','Wishlist'],['bookings','My Bookings'],['maintenance','My Maintenance'],['rents','My Rents'],['leases','My Leases']]
+      : [['properties', isOwner?'My Properties':'Properties'],['bookings','Bookings'],['maintenance','Maintenance'],['rents','Rents'],['leases','Leases']];
 
-  const stColor = (s)=> s==='approved'||s==='paid'||s==='done' ? '#22c55e' : (s==='rejected' ? '#ef4444' : '#f59e0b');
+  const stColor = (s)=> s==='approved'||s==='paid'||s==='done'||s==='active' ? '#22c55e' : (s==='rejected'||s==='expired' ? '#ef4444' : '#f59e0b');
 
   return (
     <div style={{background:'#0f172a',minHeight:'100vh',color:'#fff',padding:'16px'}}>
@@ -147,6 +172,54 @@ export default function Dashboard(){
           <div style={card}><small style={{color:'#94a3b8'}}>Maintenance (open)</small><h3 style={{margin:'4px 0'}}>{stats.maintenance} ({stats.openMaint})</h3></div>
           <div style={card}><small style={{color:'#94a3b8'}}>Rent Due ₹</small><h3 style={{margin:'4px 0',color:'#f59e0b'}}>{stats.pendingAmount}</h3></div>
           <div style={card}><small style={{color:'#94a3b8'}}>Rent Collected ₹</small><h3 style={{margin:'4px 0',color:'#22c55e'}}>{stats.collectedAmount}</h3></div>
+        </div>
+      )}
+
+      {(isStaff||isOwner) && charts && (
+        <div style={{margin:'12px 0',display:'grid',gap:'12px'}}>
+          <div style={{background:'#1e293b',padding:'14px',borderRadius:'10px'}}>
+            <b>Monthly Rent Collected</b>
+            {charts.monthlyData.length>0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={charts.monthlyData}>
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
+                  <YAxis stroke="#94a3b8" fontSize={12} />
+                  <Tooltip contentStyle={{background:'#0f172a',border:'1px solid #334155'}} />
+                  <Bar dataKey="amount" fill="#22c55e" radius={[4,4,0,0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : <p style={{color:'#94a3b8'}}>No rent data yet.</p>}
+          </div>
+          <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
+            <div style={{background:'#1e293b',padding:'14px',borderRadius:'10px',flex:'1',minWidth:'260px'}}>
+              <b>Bookings by Status</b>
+              {charts.bookingData.length>0 ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={charts.bookingData} dataKey="value" nameKey="name" outerRadius={70} label>
+                      {charts.bookingData.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{background:'#0f172a',border:'1px solid #334155'}} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : <p style={{color:'#94a3b8'}}>No booking data yet.</p>}
+            </div>
+            <div style={{background:'#1e293b',padding:'14px',borderRadius:'10px',flex:'1',minWidth:'260px'}}>
+              <b>Properties by Type</b>
+              {charts.typeData.length>0 ? (
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie data={charts.typeData} dataKey="value" nameKey="name" outerRadius={70} label>
+                      {charts.typeData.map((e,i)=><Cell key={i} fill={COLORS[(i+2)%COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{background:'#0f172a',border:'1px solid #334155'}} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : <p style={{color:'#94a3b8'}}>No property data yet.</p>}
+            </div>
+          </div>
         </div>
       )}
 
@@ -206,12 +279,28 @@ export default function Dashboard(){
               </div>
             )}
             <div style={{marginTop:'8px',display:'flex',gap:'8px',flexWrap:'wrap'}}>
-              {isTenant && <><button onClick={()=>bookProp(p._id)} style={btn('#3b82f6')}>Book</button><button onClick={()=>reqMaint(p._id)} style={btn('#f59e0b')}>Maintenance</button><button onClick={()=>addReview(p._id)} style={btn('#8b5cf6')}>Review</button></>}
+              {isTenant && <><button onClick={()=>bookProp(p._id)} style={btn('#3b82f6')}>Book</button><button onClick={()=>reqMaint(p._id)} style={btn('#f59e0b')}>Maintenance</button><button onClick={()=>addReview(p._id)} style={btn('#8b5cf6')}>Review</button><button onClick={()=>toggleWish(p._id)} style={{background:'#1e293b',border:'1px solid #ef4444',borderRadius:'6px',padding:'8px 12px',cursor:'pointer',fontSize:'16px'}}>{wishIds.includes(String(p._id))?'❤️':'🤍'}</button></>}
               {isStaff && <button onClick={()=>delProp(p._id)} style={btn('#ef4444')}>Delete</button>}
             </div>
           </div>
         ))}
         {myProps.length===0 && <p style={{color:'#94a3b8'}}>No properties found.</p>}
+      </>)}
+
+      {tab==='wishlist' && (<>
+        <h3>My Wishlist ({wishItems.length})</h3>
+        {wishItems.map(w=>(
+          <div key={w._id} style={{background:'#1e293b',padding:'12px',margin:'8px 0',borderRadius:'10px'}}>
+            {w.property.image && <img src={w.property.image} alt="" style={{width:'100%',maxHeight:'200px',objectFit:'cover',borderRadius:'8px',marginBottom:'8px'}} />}
+            <b>{w.property.title}</b> - {w.property.type} - ₹{w.property.price}<br/>
+            <small style={{color:'#94a3b8'}}>{w.property.city}</small>
+            <div style={{marginTop:'8px',display:'flex',gap:'8px'}}>
+              <button onClick={()=>bookProp(w.property._id)} style={btn('#3b82f6')}>Book</button>
+              <button onClick={()=>toggleWish(w.property._id)} style={btn('#ef4444')}>Remove ❤️</button>
+            </div>
+          </div>
+        ))}
+        {wishItems.length===0 && <p style={{color:'#94a3b8'}}>No favorites yet. Tap 🤍 on properties.</p>}
       </>)}
 
       {tab==='bookings' && (<>
@@ -281,6 +370,46 @@ export default function Dashboard(){
           </div>
         ))}
         {rents.length===0 && <p style={{color:'#94a3b8'}}>No rent records.</p>}
+      </>)}
+
+      {tab==='leases' && (<>
+        <h3>{isTenant ? 'My Leases' : 'Leases ('+leases.length+')'}</h3>
+        {(isStaff||isOwner) && (
+          <form onSubmit={addLease} style={{display:'grid',gap:'8px',maxWidth:'500px',marginBottom:'16px',background:'#1e293b',padding:'14px',borderRadius:'10px'}}>
+            <b>New Lease Agreement</b>
+            <select value={leaseForm.propertyId} onChange={e=>setLeaseForm({...leaseForm,propertyId:e.target.value})} required style={inp}>
+              <option value="">Select Property</option>
+              {myProps.map(p=><option key={p._id} value={p._id}>{p.title} - {p.city}</option>)}
+            </select>
+            <input placeholder="Tenant Email or ID" value={leaseForm.tenantEmailOrId} onChange={e=>setLeaseForm({...leaseForm,tenantEmailOrId:e.target.value})} required style={inp} />
+            <label style={{fontSize:'12px',color:'#94a3b8'}}>Start Date</label>
+            <input type="date" value={leaseForm.startDate} onChange={e=>setLeaseForm({...leaseForm,startDate:e.target.value})} required style={inp} />
+            <label style={{fontSize:'12px',color:'#94a3b8'}}>End Date</label>
+            <input type="date" value={leaseForm.endDate} onChange={e=>setLeaseForm({...leaseForm,endDate:e.target.value})} required style={inp} />
+            <input placeholder="Monthly Rent ₹" type="number" value={leaseForm.monthlyRent} onChange={e=>setLeaseForm({...leaseForm,monthlyRent:e.target.value})} required style={inp} />
+            <input placeholder="Deposit ₹ (optional)" type="number" value={leaseForm.deposit} onChange={e=>setLeaseForm({...leaseForm,deposit:e.target.value})} style={inp} />
+            <textarea placeholder="Terms & conditions (optional)" value={leaseForm.terms} onChange={e=>setLeaseForm({...leaseForm,terms:e.target.value})} style={{...inp,minHeight:'60px'}} />
+            <button type="submit" style={btn('#22c55e')}>Create Lease</button>
+          </form>
+        )}
+        {leases.map(l=>(
+          <div key={l._id} style={{background:'#1e293b',padding:'12px',margin:'8px 0',borderRadius:'10px',borderLeft: l.status==='active'&&l.daysRemaining<=30&&l.daysRemaining>=0 ? '4px solid #f59e0b' : '4px solid transparent'}}>
+            <b>{l.property?.title}</b>{l.tenant?.fullName && <> - {l.tenant.fullName}</>}<br/>
+            <small style={{color:'#94a3b8'}}>Period: {fmtD(l.startDate)} → {fmtD(l.endDate)}</small><br/>
+            <span>Monthly: ₹{l.monthlyRent} | Deposit: ₹{l.deposit}</span><br/>
+            {l.terms && <small style={{color:'#94a3b8'}}>Terms: {l.terms}</small>}
+            <div style={{marginTop:'6px'}}>
+              <span style={{color:stColor(l.status),fontWeight:'bold'}}>{l.status.toUpperCase()}</span>
+              {l.status==='active' && l.daysRemaining>=0 && l.daysRemaining<=30 && <span style={{color:'#f59e0b'}}> — Expiring in {l.daysRemaining} days!</span>}
+              {l.status==='active' && l.daysRemaining>30 && <small style={{color:'#94a3b8'}}> — {l.daysRemaining} days left</small>}
+              {l.status==='expired' && <span style={{color:'#ef4444'}}> — Expired</span>}
+            </div>
+            {(isStaff||isOwner) && l.status==='active' && (
+              <button onClick={()=>updateLease(l._id,'terminated')} style={{...btn('#ef4444'),marginTop:'6px'}}>Terminate</button>
+            )}
+          </div>
+        ))}
+        {leases.length===0 && <p style={{color:'#94a3b8'}}>No leases yet.</p>}
       </>)}
     </div>
   );
