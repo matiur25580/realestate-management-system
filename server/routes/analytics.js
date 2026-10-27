@@ -30,7 +30,7 @@ router.get('/summary', auth, async (req,res)=>{
       const maintenance = await Maintenance.countDocuments(tm);
       const openMaint = await Maintenance.countDocuments({ ...tm, status:{ $ne:'done' } });
       const due = await Rent.aggregate([ { $match:{ ...tm, status:{ $in:['pending','overdue'] } } }, { $group:{ _id:null, total:{ $sum:'$amount' } } } ]);
-      const paid = await Rent.aggregate([ { $match:{ ...tm, status:'paid' } } }, { $group:{ _id:null, total:{ $sum:'$amount' } } } ]);
+      const paid = await Rent.aggregate([ { $match:{ ...tm, status:'paid' } }, { $group:{ _id:null, total:{ $sum:'$amount' } } } ]);
       const activeLeases = await Lease.countDocuments({ ...tm, status:'active' });
       return res.json({ bookings, pendingBookings, maintenance, openMaint, pendingAmount: due[0]?.total||0, collectedAmount: paid[0]?.total||0, activeLeases });
     }
@@ -43,7 +43,7 @@ router.get('/summary', auth, async (req,res)=>{
     const maintenance = await Maintenance.countDocuments(inProp);
     const openMaint = await Maintenance.countDocuments({ ...inProp, status:{ $ne:'done' } });
     const due = await Rent.aggregate([ { $match:{ ...inProp, status:{ $in:['pending','overdue'] } } }, { $group:{ _id:null, total:{ $sum:'$amount' } } } ]);
-    const paid = await Rent.aggregate([ { $match:{ ...inProp, status:'paid' } } }, { $group:{ _id:null, total:{ $sum:'$amount' } } } ]);
+    const paid = await Rent.aggregate([ { $match:{ ...inProp, status:'paid' } }, { $group:{ _id:null, total:{ $sum:'$amount' } } } ]);
     const activeLeases = await Lease.countDocuments({ status:'active', ...inProp });
     res.json({ properties, bookings, pendingBookings, maintenance, openMaint, pendingAmount: due[0]?.total||0, collectedAmount: paid[0]?.total||0, activeLeases });
   }catch(e){ res.status(500).json({message:e.message}); }
