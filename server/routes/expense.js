@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 const Expense = require('../models/Expense');
 const Property = require('../models/Property');
 const rl = (req)=> (req.user.role||'').toLowerCase();
@@ -12,6 +13,7 @@ router.post('/', auth, async (req,res)=>{
     const oid = p ? (p.ownerId || p.owner) : null;
     if(!p || String(oid)!==String(req.user.id)) return res.status(403).json({msg:'Not your property'});
     const e = await Expense.create({ property: propertyId, ownerId: req.user.id, title, category: category||'Other', amount: Number(amount), date: date||new Date(), notes: notes||'' });
+    logAudit(req,'Expense Added',req.body.title||'');
     res.json(e);
   }catch(e){ res.status(500).json({msg:e.message}); }
 });

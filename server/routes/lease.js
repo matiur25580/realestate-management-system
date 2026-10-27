@@ -4,6 +4,7 @@ const Lease = require('../models/Lease');
 const Property = require('../models/Property');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
@@ -34,6 +35,7 @@ router.post('/', auth, async (req,res)=>{
     const tenant = await User.findOne({ $or: [{ email: (tenantEmailOrId||'').trim() }, { uniqueId: (tenantEmailOrId||'').trim() }] });
     if(!tenant) return res.status(404).json({message:'Tenant not found'});
     const lease = await Lease.create({ property: propertyId, tenant: tenant._id, startDate, endDate, monthlyRent: Number(monthlyRent), deposit: Number(deposit||0), terms: terms||'' });
+    logAudit(req,'Lease Created','₹'+monthlyRent+'/month lease');
     try{
       const prop = await Property.findById(propertyId);
       await sendEmail(tenant.email, 'New Lease Agreement',

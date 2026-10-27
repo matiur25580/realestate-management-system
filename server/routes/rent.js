@@ -5,6 +5,7 @@ const Rent = require('../models/Rent');
 const Property = require('../models/Property');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
@@ -27,6 +28,7 @@ router.post('/', auth, async (req,res)=>{
     const tenant = await User.findOne({ $or: [{ email: (tenantEmailOrId||'').trim() }, { uniqueId: (tenantEmailOrId||'').trim() }] });
     if(!tenant) return res.status(404).json({ message: 'Tenant not found' });
     const rec = await Rent.create({ property: propertyId, tenant: tenant._id, amount: Number(amount), month });
+    logAudit(req,'Rent Recorded','₹'+amount+' for '+month);
     const prop = await Property.findById(propertyId);
     try{
       await sendEmail(tenant.email, 'Rent Due - '+month,
@@ -95,6 +97,7 @@ router.put('/:id', auth, async (req,res)=>{
     rent.status = status;
     if(status==='paid') rent.paidAt = new Date();
     await rent.save();
+    logAudit(req,'Rent '+status,'₹'+rent.amount+' for '+rent.month);
     if(status==='paid'){
       try{
         const full = await Rent.findById(rent._id).populate('tenant','fullName email').populate('property','title');

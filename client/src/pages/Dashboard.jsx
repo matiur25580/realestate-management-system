@@ -54,6 +54,9 @@ export default function Dashboard(){
   const [maintStaff, setMaintStaff] = useState([]);
   const [commissions, setCommissions] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditFilter, setAuditFilter] = useState('');
+  const [auditActions, setAuditActions] = useState([]);
   const [expForm, setExpForm] = useState({ propertyId:'', title:'', category:'Other', amount:'', date:'', notes:'' });
 
   const approveProp = async (id)=>{ try{ await api.put('/properties/'+id+'/approve'); toast.success('Property approved & live'); load(); }catch(e){ toast.error('Failed'); } };
@@ -64,7 +67,14 @@ export default function Dashboard(){
   const setMaintPriority = async (id, priority)=>{ try{ await api.put('/maintenance/'+id, { priority }); setMaint(maint.map(m=> m._id===id ? {...m, priority} : m)); toast.success('Priority set to '+priority); }catch(e){ toast.error('Failed'); } };
   const assignMaint = async (id, userId)=>{ try{ await api.put('/maintenance/'+id, { assignedTo: userId }); toast.success(userId?'Task assigned':'Unassigned'); load(); }catch(e){ toast.error('Failed'); } };
   const renewLease = (l)=>{ setLeaseForm({ propertyId: l.property?._id||l.property||'', tenantEmailOrId: l.tenant?.email||'', startDate: l.endDate?l.endDate.slice(0,10):'', endDate:'', monthlyRent: l.monthlyRent||'', deposit: l.deposit||'', terms: l.terms||'' }); toast.info('Form pre-filled — notun end date diye submit koro'); window.scrollTo({top:0,behavior:'smooth'}); };
+  const loadAudit = async ()=>{
+    try{
+      const q = auditFilter ? '?action='+encodeURIComponent(auditFilter) : '';
+      setAuditLogs((await api.get('/audit'+q)).data||[]);
+    }catch(e){}
+  };
   const load = async ()=>{
+    if(role==='admin'){ loadAudit(); try{ setAuditActions((await api.get('/audit/actions')).data||[]); }catch(e){} }
     try{
       let url='/properties?';
       if(search) url+='search='+encodeURIComponent(search)+'&';
@@ -188,6 +198,7 @@ export default function Dashboard(){
       ? [['properties','Properties'],['wishlist','Wishlist'],['bookings','My Bookings'],['maintenance','My Maintenance'],['rents','My Rents'],['leases','My Leases']]
       : (()=>{ const st=[['properties', isOwner?'My Properties':'Properties'],['bookings','Bookings'],['maintenance','Maintenance'],['rents','Rents'],['leases','Leases']];
         if(role==='admin'||role==='agent') st.push(['commissions','Commissions']);
+        if(role==='admin') st.push(['audit','\U0001F4CB Audit Log']);
         if(isOwner) st.push(['expenses','Expenses']);
         return st; })();
 
@@ -554,6 +565,35 @@ export default function Dashboard(){
           </div>
         ))}
         {leases.length===0 && <p style={{color:'var(--app-muted)'}}>No leases yet.</p>}
+      </>)}
+      {tab==='audit' && (<>
+        <h3>\U0001F4CB Audit Log <small style={{color:'var(--app-muted)'}}>({auditLogs.length})</small></h3>
+        <div style={{display:'flex',gap:'8px',marginBottom:'10px',flexWrap:'wrap'}}>
+          <select value={auditFilter} onChange={e=>{setAuditFilter(e.target.value); setTimeout(loadAudit,50);}} style={inp}>
+            <option value="">All actions</option>
+            {auditActions.map(a=><option key={a} value={a}>{a}</option>)}
+          </select>
+          <button onClick={loadAudit} style={btn('#6366f1')}>\U0001F504 Refresh</button>
+        </div>
+        <div style={{overflowX:'auto'}}>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px'}}>
+          <thead><tr style={{textAlign:'left',borderBottom:'2px solid var(--app-border)'}}>
+            <th style={{padding:'8px'}}>Time</th><th style={{padding:'8px'}}>User</th><th style={{padding:'8px'}}>Role</th><th style={{padding:'8px'}}>Action</th><th style={{padding:'8px'}}>Details</th>
+          </tr></thead>
+          <tbody>
+            {auditLogs.map(l=>(
+              <tr key={l._id} style={{borderBottom:'1px solid var(--app-border)'}}>
+                <td style={{padding:'8px',whiteSpace:'nowrap'}}>{new Date(l.createdAt).toLocaleString('en-IN')}</td>
+                <td style={{padding:'8px'}}>{l.userName}</td>
+                <td style={{padding:'8px'}}><span style={{...badge(l.userRole==='admin'?'#ef4444':'#3b82f6')}}>{l.userRole}</span></td>
+                <td style={{padding:'8px',fontWeight:'700'}}>{l.action}</td>
+                <td style={{padding:'8px',color:'var(--app-muted)'}}>{l.details}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        </div>
+        {!auditLogs.length && <p style={{color:'var(--app-muted)'}}>No audit logs yet.</p>}
       </>)}
     </div>
   );

@@ -3,6 +3,7 @@ const router = express.Router();
 const Maintenance = require('../models/Maintenance');
 const Property = require('../models/Property');
 const auth = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
@@ -43,6 +44,7 @@ router.put('/:id', auth, async (req, res) => {
     if(tid!==String(req.user.id)) return res.status(403).json({ msg: 'Not allowed' });
     if(m.status!=='pending') return res.status(400).json({ msg: 'Only pending requests can be edited' });
     if(req.body.issue) m.issue = req.body.issue;
+    logAudit(req,'Maintenance Edited','"'+m.issue+'"');
     await m.save();
     return res.json({ msg: 'Request updated' });
   }
@@ -55,6 +57,7 @@ router.put('/:id', auth, async (req, res) => {
   if(req.body.note !== undefined) m.note = req.body.note;
   if(req.body.priority) m.priority = req.body.priority;
   if(req.body.assignedTo !== undefined && r==='admin') m.assignedTo = req.body.assignedTo || null;
+  logAudit(req,'Maintenance '+(req.body.status||'Updated'),'"'+m.issue+'" -> '+(req.body.status||''));
   await m.save();
   if(req.body.assignedTo && r==='admin'){ await notify(req.body.assignedTo, 'New Task Assigned', 'Task assigned: "'+m.issue+'" ('+(m.property?m.property.title:'')+', Priority: '+m.priority+').', 'warning'); }
   await notify(m.tenant?._id||m.tenant, 'Maintenance '+(req.body.status||'updated'), 'Your maintenance request for "'+(m.property?m.property.title:'your property')+'" is now '+(req.body.status||'updated')+'.', 'info');

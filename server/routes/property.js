@@ -3,6 +3,7 @@ const router = express.Router();
 const Property = require('../models/Property');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 
 const resolveUser = async (emailOrId)=>{
@@ -30,6 +31,7 @@ router.post('/', auth, async (req,res)=>{
     }
     const { ownerEmailOrId, agentEmailOrId, ...data } = req.body;
     const p = await Property.create({ ...data, price: Number(data.price), owner: req.user.id, ownerId, agentId, status: r==='admin' ? 'approved' : 'pending' });
+    logAudit(req,'Property Created','"'+p.title+'" added');
     res.json(p);
   }catch(e){ res.status(500).json({msg:e.message}); }
 });
@@ -41,6 +43,7 @@ router.put('/:id/approve', auth, async (req,res)=>{
     if(!p) return res.status(404).json({msg:'Not found'});
     p.status = 'approved'; await p.save();
     const notify = require('../utils/notify');
+    logAudit(req,'Property Approved','"'+p.title+'" approved');
     await notify(p.ownerId||p.owner, 'Property Approved', 'Your property "'+p.title+'" is approved and now live.', 'success');
     res.json(p);
   }catch(e){ res.status(500).json({msg:e.message}); }
@@ -52,6 +55,7 @@ router.put('/:id/reject', auth, async (req,res)=>{
     if(!p) return res.status(404).json({msg:'Not found'});
     p.status = 'rejected'; await p.save();
     const notify = require('../utils/notify');
+    logAudit(req,'Property Rejected','"'+p.title+'" rejected');
     await notify(p.ownerId||p.owner, 'Property Rejected', 'Your property "'+p.title+'" was rejected. Please contact admin.', 'warning');
     res.json(p);
   }catch(e){ res.status(500).json({msg:e.message}); }

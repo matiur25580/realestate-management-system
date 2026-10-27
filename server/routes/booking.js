@@ -3,6 +3,7 @@ const router = express.Router();
 const Booking = require('../models/Booking');
 const Property = require('../models/Property');
 const auth = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
@@ -52,6 +53,7 @@ router.put('/:id', auth, async (req, res) => {
   }
   bk.status = status;
   await bk.save();
+  logAudit(req,'Booking '+status,'Booking for "'+(bk.property?bk.property.title:'')+'" '+status);
   await notify(bk.tenant?._id||bk.tenant, 'Booking '+String(status).toUpperCase(), 'Your booking for "'+(bk.property?bk.property.title:'a property')+'" has been '+status+'.', status==='approved'?'success':'info');
   if(status==='approved' && bk.property && bk.property.agentId){
     try{
@@ -80,6 +82,7 @@ router.delete('/:id', auth, async (req, res) => {
   if(!b) return res.status(404).json({ msg: 'Not found' });
   if(String(b.tenant)!==String(req.user.id)) return res.status(403).json({ msg: 'Not allowed' });
   if(b.status!=='pending') return res.status(400).json({ msg: 'Only pending bookings can be cancelled' });
+  logAudit(req,'Booking Cancelled','Booking cancelled by tenant');
   await b.deleteOne();
   res.json({ msg: 'Booking cancelled' });
 });

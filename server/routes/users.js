@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const auth = require('../middleware/auth');
+const { logAudit } = require('../utils/audit');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 const ROLEMAP = { admin:'Admin', agent:'Agent', owner:'Owner', tenant:'Tenant', maintenance:'Maintenance' };
 
@@ -26,6 +27,7 @@ router.put('/:id/role', auth, async (req,res)=>{
   if(!R) return res.status(400).json({message:'Invalid role'});
   if(String(req.params.id)===String(req.user.id)) return res.status(400).json({message:'Cannot change own role'});
   await User.findByIdAndUpdate(req.params.id, { role: R });
+  logAudit(req,'User Role Changed','Role set to '+R);
   res.json({message:'Role updated to '+R});
 });
 
@@ -34,6 +36,7 @@ router.put('/:id/status', auth, async (req,res)=>{
   if(String(req.params.id)===String(req.user.id)) return res.status(400).json({message:'Cannot deactivate self'});
   const active = !!req.body.isActive;
   await User.findByIdAndUpdate(req.params.id, { isActive: active });
+  logAudit(req, active?'User Activated':'User Deactivated','User '+(active?'activated':'deactivated'));
   res.json({message: active ? 'User activated' : 'User deactivated'});
 });
 
