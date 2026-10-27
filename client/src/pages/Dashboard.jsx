@@ -12,6 +12,8 @@ const uidFromToken = ()=>{ try{ const t=localStorage.getItem('token'); return JS
 const card = { background:'var(--app-card)', padding:'14px', borderRadius:'10px', minWidth:'130px', flex:'1' };
 const inp = { padding:'8px', borderRadius:'6px', border:'1px solid #475569' };
 const btn = (bg)=> ({ background:bg, color:'var(--app-text)', border:'none', padding:'8px 16px', borderRadius:'6px', cursor:'pointer' });
+const lbl = { fontSize:'12px', color:'var(--app-muted)', display:'block', margin:'8px 0 4px' };
+const badge = (bg)=> ({ background:bg, color:'#fff', fontSize:'11px', fontWeight:'bold', padding:'2px 8px', borderRadius:'10px' });
 const COLORS = ['#22c55e','#f59e0b','#ef4444','#3b82f6','#8b5cf6'];
 const ROLE_META = {
   admin:{label:'Admin Dashboard', color:'#ef4444'},
@@ -57,6 +59,12 @@ export default function Dashboard(){
   const [auditLogs, setAuditLogs] = useState([]);
   const [auditFilter, setAuditFilter] = useState('');
   const [auditActions, setAuditActions] = useState([]);
+  const [inbox, setInbox] = useState([]);
+  const [sentMsgs, setSentMsgs] = useState([]);
+  const [msgUsers, setMsgUsers] = useState([]);
+  const [msgView, setMsgView] = useState('inbox');
+  const [msgForm, setMsgForm] = useState({ receiverId:'', subject:'', body:'' });
+  const [openMsg, setOpenMsg] = useState(null);
   const [expForm, setExpForm] = useState({ propertyId:'', title:'', category:'Other', amount:'', date:'', notes:'' });
 
   const approveProp = async (id)=>{ try{ await api.put('/properties/'+id+'/approve'); toast.success('Property approved & live'); load(); }catch(e){ toast.error('Failed'); } };
@@ -67,6 +75,22 @@ export default function Dashboard(){
   const setMaintPriority = async (id, priority)=>{ try{ await api.put('/maintenance/'+id, { priority }); setMaint(maint.map(m=> m._id===id ? {...m, priority} : m)); toast.success('Priority set to '+priority); }catch(e){ toast.error('Failed'); } };
   const assignMaint = async (id, userId)=>{ try{ await api.put('/maintenance/'+id, { assignedTo: userId }); toast.success(userId?'Task assigned':'Unassigned'); load(); }catch(e){ toast.error('Failed'); } };
   const renewLease = (l)=>{ setLeaseForm({ propertyId: l.property?._id||l.property||'', tenantEmailOrId: l.tenant?.email||'', startDate: l.endDate?l.endDate.slice(0,10):'', endDate:'', monthlyRent: l.monthlyRent||'', deposit: l.deposit||'', terms: l.terms||'' }); toast.info('Form pre-filled — notun end date diye submit koro'); window.scrollTo({top:0,behavior:'smooth'}); };
+  const loadMsgs = async ()=>{
+    try{ setInbox((await api.get('/messages/inbox')).data||[]); }catch(e){}
+    try{ setSentMsgs((await api.get('/messages/sent')).data||[]); }catch(e){}
+    try{ setMsgUsers((await api.get('/messages/users')).data||[]); }catch(e){}
+  };
+  const sendMsg = async (e)=>{
+    e.preventDefault();
+    if(!msgForm.receiverId || !msgForm.body.trim()) return toast.error('Select receiver and write message');
+    try{ await api.post('/messages', msgForm); setMsgForm({ receiverId:'', subject:'', body:'' }); setMsgView('sent'); loadMsgs(); toast.success('Message sent'); }
+    catch(e){ toast.error('Failed to send'); }
+  };
+  const readMsg = async (m)=>{
+    setOpenMsg(openMsg===m._id ? null : m._id);
+    if(!m.read){ try{ await api.put('/messages/'+m._id+'/read'); setInbox(inbox.map(x=>x._id===m._id?{...x,read:true}:x)); }catch(e){} }
+  };
+  const replyMsg = (m)=>{ setMsgForm({ receiverId: m.sender._id, subject: 'Re: '+(m.subject||''), body:'' }); setMsgView('compose'); setOpenMsg(null); };
   const loadAudit = async ()=>{
     try{
       const q = auditFilter ? '?action='+encodeURIComponent(auditFilter) : '';
@@ -74,6 +98,7 @@ export default function Dashboard(){
     }catch(e){}
   };
   const load = async ()=>{
+    loadMsgs();
     if(role==='admin'){ loadAudit(); try{ setAuditActions((await api.get('/audit/actions')).data||[]); }catch(e){} }
     try{
       let url='/properties?';
@@ -193,12 +218,13 @@ export default function Dashboard(){
   };
 
   const tabs = isMaint
-    ? [['tasks','My Tasks'],['properties','Properties']]
+    ? [['tasks','My Tasks'],['properties','Properties'],['messages','💬 Messages']]
     : isTenant
-      ? [['properties','Properties'],['wishlist','Wishlist'],['bookings','My Bookings'],['maintenance','My Maintenance'],['rents','My Rents'],['leases','My Leases']]
+      ? [['properties','Properties'],['wishlist','Wishlist'],['bookings','My Bookings'],['maintenance','My Maintenance'],['rents','My Rents'],['leases','My Leases'],['messages','💬 Messages']]
       : (()=>{ const st=[['properties', isOwner?'My Properties':'Properties'],['bookings','Bookings'],['maintenance','Maintenance'],['rents','Rents'],['leases','Leases']];
         if(role==='admin'||role==='agent') st.push(['commissions','Commissions']);
-        if(role==='admin') st.push(['audit','\U0001F4CB Audit Log']);
+        if(role==='admin') st.push(['audit','📋 Audit Log']);
+        st.push(['messages','💬 Messages']);
         if(isOwner) st.push(['expenses','Expenses']);
         return st; })();
 
@@ -567,13 +593,13 @@ export default function Dashboard(){
         {leases.length===0 && <p style={{color:'var(--app-muted)'}}>No leases yet.</p>}
       </>)}
       {tab==='audit' && (<>
-        <h3>\U0001F4CB Audit Log <small style={{color:'var(--app-muted)'}}>({auditLogs.length})</small></h3>
+        <h3>📋 Audit Log <small style={{color:'var(--app-muted)'}}>({auditLogs.length})</small></h3>
         <div style={{display:'flex',gap:'8px',marginBottom:'10px',flexWrap:'wrap'}}>
           <select value={auditFilter} onChange={e=>{setAuditFilter(e.target.value); setTimeout(loadAudit,50);}} style={inp}>
             <option value="">All actions</option>
             {auditActions.map(a=><option key={a} value={a}>{a}</option>)}
           </select>
-          <button onClick={loadAudit} style={btn('#6366f1')}>\U0001F504 Refresh</button>
+          <button onClick={loadAudit} style={btn('#6366f1')}>🔄 Refresh</button>
         </div>
         <div style={{overflowX:'auto'}}>
         <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px'}}>
@@ -594,6 +620,57 @@ export default function Dashboard(){
         </table>
         </div>
         {!auditLogs.length && <p style={{color:'var(--app-muted)'}}>No audit logs yet.</p>}
+      </>)}
+      {tab==='messages' && (<>
+        <h3>💬 Messages {inbox.filter(m=>!m.read).length>0 && <span style={{...badge('#ef4444')}}>{inbox.filter(m=>!m.read).length} new</span>}</h3>
+        <div style={{display:'flex',gap:'8px',marginBottom:'12px'}}>
+          {[['inbox','📥 Inbox ('+inbox.length+')'],['sent','📤 Sent ('+sentMsgs.length+')'],['compose','✏️ Compose']].map(([v,l])=>(
+            <button key={v} onClick={()=>setMsgView(v)} style={{...btn(msgView===v?'#6366f1':'#64748b'),padding:'8px 14px'}}>{l}</button>
+          ))}
+        </div>
+        {msgView==='compose' && (
+          <form onSubmit={sendMsg} style={{background:'var(--app-card)',padding:'14px',borderRadius:'10px',maxWidth:'600px'}}>
+            <label style={lbl}>To</label>
+            <select value={msgForm.receiverId} onChange={e=>setMsgForm({...msgForm,receiverId:e.target.value})} style={inp} required>
+              <option value="">Select person...</option>
+              {msgUsers.map(u=><option key={u._id} value={u._id}>{u.fullName} ({u.role}) — {u.email}</option>)}
+            </select>
+            <label style={lbl}>Subject</label>
+            <input value={msgForm.subject} onChange={e=>setMsgForm({...msgForm,subject:e.target.value})} style={inp} placeholder="Subject (optional)"/>
+            <label style={lbl}>Message</label>
+            <textarea value={msgForm.body} onChange={e=>setMsgForm({...msgForm,body:e.target.value})} style={{...inp,minHeight:'100px'}} placeholder="Write your message..." required/>
+            <button type="submit" style={{...btn('#6366f1'),marginTop:'10px'}}>📤 Send Message</button>
+          </form>
+        )}
+        {msgView==='inbox' && (<>
+          {!inbox.length && <p style={{color:'var(--app-muted)'}}>No messages yet.</p>}
+          {inbox.map(m=>(
+            <div key={m._id} style={{background:m.read?'var(--app-card)':'#eef2ff',padding:'10px 12px',margin:'6px 0',borderRadius:'8px',border:m.read?'1px solid var(--app-border)':'1px solid #6366f1',cursor:'pointer'}} onClick={()=>readMsg(m)}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <b>{!m.read && '🔴 '}{m.sender?.fullName} <small style={{color:'var(--app-muted)'}}>({m.sender?.role})</small></b>
+                <small style={{color:'var(--app-muted)'}}>{new Date(m.createdAt).toLocaleString('en-IN')}</small>
+              </div>
+              {m.subject && <div style={{fontWeight:'600',marginTop:'4px'}}>{m.subject}</div>}
+              {openMsg===m._id && (<>
+                <div style={{marginTop:'8px',whiteSpace:'pre-wrap'}}>{m.body}</div>
+                <button onClick={(e)=>{e.stopPropagation(); replyMsg(m);}} style={{...btn('#22c55e'),marginTop:'8px',padding:'6px 12px'}}>💬 Reply</button>
+              </>)}
+            </div>
+          ))}
+        </>)}
+        {msgView==='sent' && (<>
+          {!sentMsgs.length && <p style={{color:'var(--app-muted)'}}>No sent messages.</p>}
+          {sentMsgs.map(m=>(
+            <div key={m._id} style={{background:'var(--app-card)',padding:'10px 12px',margin:'6px 0',borderRadius:'8px',border:'1px solid var(--app-border)'}}>
+              <div style={{display:'flex',justifyContent:'space-between'}}>
+                <b>To: {m.receiver?.fullName} <small style={{color:'var(--app-muted)'}}>({m.receiver?.role})</small></b>
+                <small style={{color:'var(--app-muted)'}}>{new Date(m.createdAt).toLocaleString('en-IN')}</small>
+              </div>
+              {m.subject && <div style={{fontWeight:'600',marginTop:'4px'}}>{m.subject}</div>}
+              <div style={{marginTop:'4px',color:'var(--app-muted)'}}>{m.body.slice(0,120)}{m.body.length>120?'...':''}</div>
+            </div>
+          ))}
+        </>)}
       </>)}
     </div>
   );
