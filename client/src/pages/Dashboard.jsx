@@ -106,21 +106,22 @@ export default function Dashboard(){
     try{ await api.post('/properties', { ...form, price: Number(form.price) }); }
     catch(err){ return toast.error(err.response?.data?.msg || 'Failed'); }
     setForm({ title:'', type:'Flat', price:'', area:'', address:'', city:'', image:'', ownerEmailOrId:'' });
-    load();
+    load(); toast.success('Property added'+(role==='admin'?'':' — pending admin approval'));
   };
-  const delProp = async (id)=>{ if(!confirm('Delete property?')) return; await api.delete('/properties/'+id); load(); };
+  const delProp = async (id)=>{ if(!confirm('Delete property?')) return; try{ await api.delete('/properties/'+id); toast.success('Property deleted'); load(); }catch(e){ toast.error('Failed'); } };
   const bookProp = async (id)=>{
     const msg = prompt('Booking message:'); if(!msg) return;
-    await api.post('/bookings', { propertyId: id, message: msg });
-    toast.success('Booking request sent'); load();
+    try{ await api.post('/bookings', { propertyId: id, message: msg }); toast.success('Booking request sent'); load(); }
+    catch(e){ toast.error(e.response?.data?.msg||'Failed'); }
   };
   const reqMaint = async (id)=>{
     const issue = prompt('Maintenance issue:'); if(!issue) return;
-    await api.post('/maintenance', { propertyId: id, issue });
-    toast.success('Maintenance requested'); load();
+    try{ await api.post('/maintenance', { propertyId: id, issue }); toast.success('Maintenance requested'); load(); }
+    catch(e){ toast.error(e.response?.data?.msg||'Failed'); }
   };
-  const updateBooking = async (id, status)=>{ await api.put('/bookings/'+id, { status }); toast.success('Booking approved, tenant ke email pathano hoyeche'); load(); };
-  const updateMaint = async (id, status)=>{ await api.put('/maintenance/'+id, { status }); load(); };
+  const updateBooking = async (id, status)=>{ try{ await api.put('/bookings/'+id, { status }); toast.success(status==='approved'?'Booking approved, tenant notified':'Booking rejected, tenant notified'); load(); }catch(e){ toast.error('Failed'); } };
+  const cancelBooking = async (id)=>{ if(!confirm('Cancel this booking?')) return; try{ await api.delete('/bookings/'+id); toast.success('Booking cancelled'); load(); }catch(e){ toast.error(e.response?.data?.msg||'Failed'); } };
+  const updateMaint = async (id, status)=>{ try{ await api.put('/maintenance/'+id, { status }); toast.success('Marked: '+status); load(); }catch(e){ toast.error('Failed'); } };
   const addRent = async (e)=>{
     e.preventDefault();
     try{
@@ -129,7 +130,7 @@ export default function Dashboard(){
       load(); toast.success('Rent record added, tenant ke email geche');
     }catch(err){ toast.error(err.response?.data?.message || 'Failed'); }
   };
-  const markRentPaid = async (id)=>{ await api.put('/rents/'+id, { status:'paid' }); load(); };
+  const markRentPaid = async (id)=>{ try{ await api.put('/rents/'+id, { status:'paid' }); toast.success('Marked as paid'); load(); }catch(e){ toast.error('Failed'); } };
   const addLease = async (e)=>{
     e.preventDefault();
     try{
@@ -138,11 +139,13 @@ export default function Dashboard(){
       load(); toast.success('Lease created, tenant ke email geche');
     }catch(err){ toast.error(err.response?.data?.message || 'Failed'); }
   };
-  const updateLease = async (id, status)=>{ if(!confirm('Lease '+status+'?')) return; await api.put('/leases/'+id, { status }); load(); };
+  const updateLease = async (id, status)=>{ if(!confirm('Lease '+status+'?')) return; try{ await api.put('/leases/'+id, { status }); toast.success('Lease '+status); load(); }catch(e){ toast.error('Failed'); } };
   const toggleWish = async (pid)=>{
-    const res = await api.post('/wishlist', { propertyId: pid });
-    if(res.data.saved){ const w = await api.get('/wishlist/my'); setWishItems(w.data.filter(x=>x.property)); }
-    else setWishItems(wishItems.filter(w=>String(w.property._id)!==String(pid)));
+    try{
+      const res = await api.post('/wishlist', { propertyId: pid });
+      if(res.data.saved){ const w = await api.get('/wishlist/my'); setWishItems((w.data||[]).filter(x=>x.property)); toast.success('Added to wishlist'); }
+      else { setWishItems(wishItems.filter(w=>w.property && String(w.property._id)!==String(pid))); toast.info('Removed from wishlist'); }
+    }catch(e){ toast.error('Failed'); }
   };
 
   const addReview = async (pid)=>{
@@ -157,14 +160,15 @@ export default function Dashboard(){
   };
   const toggleReviews = async (pid)=>{
     if(revFor===pid){ setRevFor(null); return; }
-    setRevList((await api.get('/reviews/property/'+pid)).data.reviews);
-    setRevFor(pid);
+    try{ setRevList((await api.get('/reviews/property/'+pid)).data.reviews); setRevFor(pid); }
+    catch(e){ toast.error('Failed to load reviews'); }
   };
   const delReview = async (rid, pid)=>{
     if(!confirm('Delete review?')) return;
-    await api.delete('/reviews/'+rid);
-    setRevList((await api.get('/reviews/property/'+pid)).data.reviews);
-    setRevSummary((await api.get('/reviews/summary')).data);
+    try{ await api.delete('/reviews/'+rid);
+      setRevList((await api.get('/reviews/property/'+pid)).data.reviews);
+      setRevSummary((await api.get('/reviews/summary')).data); toast.success('Review deleted');
+    }catch(e){ toast.error('Failed'); }
   };
   const downloadReceipt = async (id, month)=>{
     try{
@@ -373,6 +377,11 @@ export default function Dashboard(){
               <div style={{marginTop:'6px',display:'flex',gap:'6px'}}>
                 <button onClick={()=>updateBooking(b._id,'approved')} style={btn('#22c55e')}>Approve</button>
                 <button onClick={()=>updateBooking(b._id,'rejected')} style={btn('#ef4444')}>Reject</button>
+              </div>
+            )}
+            {isTenant && (b.status==='pending'||!b.status) && (
+              <div style={{marginTop:'6px'}}>
+                <button onClick={()=>cancelBooking(b._id)} style={btn('#ef4444')}>Cancel Booking</button>
               </div>
             )}
           </div>
