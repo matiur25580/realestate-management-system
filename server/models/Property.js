@@ -7,6 +7,7 @@ const propertySchema = new mongoose.Schema({
   address: { type: String, required: true },
   city: { type: String, required: true },
   image: { type: String, default: '' },
+  images: { type: [String], default: [] },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
   agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },

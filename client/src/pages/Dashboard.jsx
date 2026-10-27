@@ -7,6 +7,11 @@ import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import Documents from '../components/Documents';
+import Visits from '../components/Visits';
+import PnLReport from '../components/PnLReport';
+import TenantRating from '../components/TenantRating';
+import RentReminder from '../components/RentReminder';
 
 const uidFromToken = ()=>{ try{ const t=localStorage.getItem('token'); return JSON.parse(atob(t.split('.')[1])).id; }catch(e){ return null; } };
 const card = { background:'var(--app-card)', padding:'14px', borderRadius:'10px', minWidth:'130px', flex:'1' };
@@ -218,13 +223,17 @@ export default function Dashboard(){
   };
 
   const tabs = isMaint
-    ? [['tasks','My Tasks'],['properties','Properties'],['messages','💬 Messages']]
+    ? [['tasks','My Tasks'],['properties','Properties'],['messages','💬 Messages'],['documents','📄 Documents'],['visits','📅 Visits'],['ratings','⭐ Ratings']]
     : isTenant
-      ? [['properties','Properties'],['wishlist','Wishlist'],['bookings','My Bookings'],['maintenance','My Maintenance'],['rents','My Rents'],['leases','My Leases'],['messages','💬 Messages']]
+      ? [['properties','Properties'],['wishlist','Wishlist'],['bookings','My Bookings'],['maintenance','My Maintenance'],['rents','My Rents'],['leases','My Leases'],['messages','💬 Messages'],['documents','📄 Documents'],['visits','📅 Visits'],['ratings','⭐ Ratings']]
       : (()=>{ const st=[['properties', isOwner?'My Properties':'Properties'],['bookings','Bookings'],['maintenance','Maintenance'],['rents','Rents'],['leases','Leases']];
         if(role==='admin'||role==='agent') st.push(['commissions','Commissions']);
         if(role==='admin') st.push(['audit','📋 Audit Log']);
         st.push(['messages','💬 Messages']);
+        st.push(['documents','📄 Documents']);
+        st.push(['visits','📅 Visits']);
+        st.push(['ratings','⭐ Ratings']);
+        if(role==='admin'||role==='owner') st.push(['pnl','📊 P&L Report']);
         if(isOwner) st.push(['expenses','Expenses']);
         return st; })();
 
@@ -242,6 +251,7 @@ export default function Dashboard(){
           <div style={{color:'var(--app-muted)',fontSize:13,marginTop:4}}>Welcome, {user?.fullName}</div>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}><LiveDateTime /><NotificationBell role={role} /><ThemeToggle /><button onClick={()=>{logout(); nav('/login',{replace:true});}} style={btn('#ef4444')}>Logout</button></div>
+      {role === 'tenant' && <RentReminder api={api} toast={toast} />}
       </div>
       <p style={{color:'var(--app-muted)'}}>ID: {user?.uniqueId}</p>
 
@@ -622,6 +632,10 @@ export default function Dashboard(){
         {!auditLogs.length && <p style={{color:'var(--app-muted)'}}>No audit logs yet.</p>}
       </>)}
       {tab==='messages' && (<>
+      {tab==='documents' && <Documents api={api} user={user} toast={toast} />}
+      {tab==='visits' && <Visits api={api} user={user} toast={toast} properties={properties} />}
+      {tab==='pnl' && <PnLReport api={api} user={user} toast={toast} />}
+      {tab==='ratings' && <TenantRating api={api} user={user} toast={toast} tenants={tenants} properties={properties} />}
         <h3>💬 Messages {inbox.filter(m=>!m.read).length>0 && <span style={{...badge('#ef4444')}}>{inbox.filter(m=>!m.read).length} new</span>}</h3>
         <div style={{display:'flex',gap:'8px',marginBottom:'12px'}}>
           {[['inbox','📥 Inbox ('+inbox.length+')'],['sent','📤 Sent ('+sentMsgs.length+')'],['compose','✏️ Compose']].map(([v,l])=>(
