@@ -37,6 +37,7 @@ export default function Login(){
           <input type={show?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" style={{width:'100%',padding:'10px',margin:'8px 0'}} required />
           <span onClick={()=>setShow(!show)} style={{position:'absolute',right:'10px',top:'18px',cursor:'pointer'}}>👁️</span>
         </div>
+        <p style={{textAlign:"right",marginTop:"4px"}}><Link to="/forgot-password" style={{color:"#60a5fa",fontSize:"14px"}}>Forgot Password?</Link></p>
         <button type="submit" style={{width:'100%',padding:'12px',background:'#3b82f6',border:'none',color:'#fff',borderRadius:'8px',marginTop:'10px'}}>Login</button>
         <p style={{textAlign:'center',marginTop:'12px'}}>No account? <Link to="/register" style={{color:'#60a5fa'}}>Register</Link></p>
       </form>

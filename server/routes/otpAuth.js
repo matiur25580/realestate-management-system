@@ -17,7 +17,6 @@ router.post('/register', async (req,res)=>{
     await Otp.deleteMany({ email });
     await Otp.create({ email, otp: otpCode });
     await sendEmail(email, 'Your RealEstate OTP', `Your OTP is ${otpCode}. Valid for 5 minutes.`);
-    // temp save in otp collection with user data as hashed
     const hashedPw = await bcrypt.hash(password, 10);
     const uniqueId = generateUniqueId(role, fullName, dob);
     await Otp.create({ email: email+'_data', otp: JSON.stringify({ fullName, contactNumber, dob, role, password: hashedPw, uniqueId }) });
@@ -51,6 +50,39 @@ router.post('/login', async (req,res)=>{
     if(!ok) return res.status(400).json({ message: 'Invalid credentials' });
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, role: user.role, uniqueId: user.uniqueId, fullName: user.fullName });
+  }catch(e){ res.status(500).json({ message: e.message }); }
+});
+
+// Forgot Password - reset OTP pathao
+router.post('/forgot-password', async (req,res)=>{
+  try{
+    const email = (req.body.email || '').trim();
+    const user = await User.findOne({ email });
+    if(!user) return res.status(404).json({ message: "this email doesn't registered, plz first registered" });
+    await Otp.deleteMany({ email });
+    const otpCode = Math.floor(100000 + Math.random()*900000).toString();
+    await Otp.create({ email, otp: otpCode });
+    await sendEmail(email, 'Password Reset OTP', `Your password reset OTP is ${otpCode}. Valid for 5 minutes.`);
+    res.json({ message: 'OTP sent to your email' });
+  }catch(e){ res.status(500).json({ message: e.message }); }
+});
+
+// Reset Password - OTP verify kore notun password set
+router.post('/reset-password', async (req,res)=>{
+  try{
+    const email = (req.body.email || '').trim();
+    const { otp, newPassword } = req.body;
+    if(!newPassword || newPassword.length < 6) return res.status(400).json({ message: 'Password minimum 6 characters' });
+    const record = await Otp.findOne({ email, otp });
+    if(!record) return res.status(400).json({ message: 'Invalid or expired OTP' });
+    const user = await User.findOne({ email });
+    if(!user) return res.status(404).json({ message: 'User not found' });
+    const same = await bcrypt.compare(newPassword, user.password);
+    if(same) return res.status(400).json({ message: 'This is your current password. Please enter a different password' });
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+    await Otp.deleteMany({ email });
+    res.json({ message: 'Password reset successful. Please login with new password.' });
   }catch(e){ res.status(500).json({ message: e.message }); }
 });
 
