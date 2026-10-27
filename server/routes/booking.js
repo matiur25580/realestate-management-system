@@ -53,6 +53,18 @@ router.put('/:id', auth, async (req, res) => {
   bk.status = status;
   await bk.save();
   await notify(bk.tenant?._id||bk.tenant, 'Booking '+String(status).toUpperCase(), 'Your booking for "'+(bk.property?bk.property.title:'a property')+'" has been '+status+'.', status==='approved'?'success':'info');
+  if(status==='approved' && bk.property && bk.property.agentId){
+    try{
+      const Commission = require('../models/Commission');
+      const exists = await Commission.findOne({ booking: bk._id });
+      if(!exists){
+        const pct = 2;
+        const amt = Math.round(Number(bk.property.price||0) * pct / 100);
+        await Commission.create({ agentId: bk.property.agentId, property: bk.property._id, booking: bk._id, amount: amt, percent: pct });
+        await notify(bk.property.agentId, 'Commission Earned', 'You earned Rs.'+amt+' ('+pct+'%) commission for "'+bk.property.title+'".', 'success');
+      }
+    }catch(ce){ console.log('commission hook failed:', ce.message); }
+  }
   if(bk.tenant && bk.tenant.email){
     try{
       const ok = status==='approved';

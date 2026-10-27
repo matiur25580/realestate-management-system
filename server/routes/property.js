@@ -29,11 +29,33 @@ router.post('/', auth, async (req,res)=>{
       if(au) agentId = au._id;
     }
     const { ownerEmailOrId, agentEmailOrId, ...data } = req.body;
-    const p = await Property.create({ ...data, price: Number(data.price), owner: req.user.id, ownerId, agentId });
+    const p = await Property.create({ ...data, price: Number(data.price), owner: req.user.id, ownerId, agentId, status: r==='admin' ? 'approved' : 'pending' });
     res.json(p);
   }catch(e){ res.status(500).json({msg:e.message}); }
 });
 
+router.put('/:id/approve', auth, async (req,res)=>{
+  try{
+    if(rl(req)!=='admin') return res.status(403).json({msg:'Not allowed'});
+    const p = await Property.findById(req.params.id);
+    if(!p) return res.status(404).json({msg:'Not found'});
+    p.status = 'approved'; await p.save();
+    const notify = require('../utils/notify');
+    await notify(p.ownerId||p.owner, 'Property Approved', 'Your property "'+p.title+'" is approved and now live.', 'success');
+    res.json(p);
+  }catch(e){ res.status(500).json({msg:e.message}); }
+});
+router.put('/:id/reject', auth, async (req,res)=>{
+  try{
+    if(rl(req)!=='admin') return res.status(403).json({msg:'Not allowed'});
+    const p = await Property.findById(req.params.id);
+    if(!p) return res.status(404).json({msg:'Not found'});
+    p.status = 'rejected'; await p.save();
+    const notify = require('../utils/notify');
+    await notify(p.ownerId||p.owner, 'Property Rejected', 'Your property "'+p.title+'" was rejected. Please contact admin.', 'warning');
+    res.json(p);
+  }catch(e){ res.status(500).json({msg:e.message}); }
+});
 router.get('/', async (req,res)=>{
   try{
     const { search='', type='', city='' } = req.query;

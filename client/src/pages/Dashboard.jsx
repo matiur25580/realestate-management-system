@@ -50,7 +50,15 @@ export default function Dashboard(){
   const [revFor, setRevFor] = useState(null);
   const [revList, setRevList] = useState([]);
   const [wishItems, setWishItems] = useState([]);
+  const [commissions, setCommissions] = useState([]);
+  const [expenses, setExpenses] = useState([]);
+  const [expForm, setExpForm] = useState({ propertyId:'', title:'', category:'Other', amount:'', date:'', notes:'' });
 
+  const approveProp = async (id)=>{ try{ await api.put('/properties/'+id+'/approve'); toast.success('Property approved & live'); load(); }catch(e){ toast.error('Failed'); } };
+  const rejectProp = async (id)=>{ try{ await api.put('/properties/'+id+'/reject'); toast.success('Property rejected'); load(); }catch(e){ toast.error('Failed'); } };
+  const payCommission = async (id)=>{ try{ await api.put('/commissions/'+id+'/pay'); toast.success('Commission marked paid'); setCommissions((await api.get('/commissions/all')).data); }catch(e){ toast.error('Failed'); } };
+  const addExpense = async (e)=>{ e.preventDefault(); try{ await api.post('/expenses', expForm); toast.success('Expense added'); setExpForm({ propertyId:'', title:'', category:'Other', amount:'', date:'', notes:'' }); setExpenses((await api.get('/expenses/my')).data); }catch(err){ toast.error(err.response?.data?.msg||'Failed'); } };
+  const delExpense = async (id)=>{ try{ await api.delete('/expenses/'+id); toast.success('Deleted'); setExpenses(expenses.filter(x=>x._id!==id)); }catch(e){ toast.error('Failed'); } };
   const load = async ()=>{
     try{
       let url='/properties?';
@@ -77,12 +85,15 @@ export default function Dashboard(){
         setLeases((await api.get('/leases/all')).data);
         setStats((await api.get('/analytics/summary')).data);
         setCharts((await api.get('/analytics/charts')).data);
+        try{ if(role==='admin'||role==='agent') setCommissions((await api.get(role==='admin'?'/commissions/all':'/commissions/my')).data); }catch(e){}
+        try{ if(isOwner) setExpenses((await api.get('/expenses/my')).data); }catch(e){}
       }
     }catch(e){}
   };
   useEffect(()=>{ load(); },[]);
 
-  const myProps = isOwner ? props.filter(p=> String(p.ownerId)===String(uid) || String(p.owner)===String(uid)) : props;
+  const _allProps = isOwner ? props.filter(p=> String(p.ownerId)===String(uid) || String(p.owner)===String(uid)) : props;
+  const myProps = isTenant ? _allProps.filter(p=> p.status==='approved' || !p.status) : _allProps;
   const wishIds = wishItems.map(w=>String(w.property._id));
 
   const addProp = async (e)=>{
@@ -165,7 +176,10 @@ export default function Dashboard(){
     ? [['tasks','My Tasks'],['properties','Properties']]
     : isTenant
       ? [['properties','Properties'],['wishlist','Wishlist'],['bookings','My Bookings'],['maintenance','My Maintenance'],['rents','My Rents'],['leases','My Leases']]
-      : [['properties', isOwner?'My Properties':'Properties'],['bookings','Bookings'],['maintenance','Maintenance'],['rents','Rents'],['leases','Leases']];
+      : (()=>{ const st=[['properties', isOwner?'My Properties':'Properties'],['bookings','Bookings'],['maintenance','Maintenance'],['rents','Rents'],['leases','Leases']];
+        if(role==='admin'||role==='agent') st.push(['commissions','Commissions']);
+        if(isOwner) st.push(['expenses','Expenses']);
+        return st; })();
 
   const stColor = (s)=> s==='approved'||s==='paid'||s==='done'||s==='active' ? '#22c55e' : (s==='rejected'||s==='expired' ? '#ef4444' : '#f59e0b');
 
@@ -256,6 +270,20 @@ export default function Dashboard(){
       </div>
 
       {tab==='properties' && (<>
+        {role==='admin' && (<>
+          <h3>⏳ Pending Approvals ({props.filter(p=>p.status==='pending').length})</h3>
+          {props.filter(p=>p.status==='pending').map(p=>(
+            <div key={p._id} style={{background:'var(--app-card)',padding:'12px',margin:'8px 0',borderRadius:'10px',borderLeft:'4px solid #f59e0b'}}>
+              <b>{p.title}</b> - {p.type} - ₹{p.price}{(p.status||'approved')!=='approved' && <span style={{fontSize:'11px',fontWeight:'bold',padding:'2px 8px',borderRadius:'10px',background:p.status==='pending'?'#f59e0b':'#ef4444',color:'#fff',marginLeft:'6px'}}>{(p.status||'').toUpperCase()}</span>}<br/>
+              <small style={{color:'var(--app-muted)'}}>{p.address}, {p.city} | {p.area} sqft</small>
+              <div style={{marginTop:'8px',display:'flex',gap:'8px'}}>
+                <button onClick={()=>approveProp(p._id)} style={btn('#22c55e')}>Approve</button>
+                <button onClick={()=>rejectProp(p._id)} style={btn('#ef4444')}>Reject</button>
+              </div>
+            </div>
+          ))}
+          {props.filter(p=>p.status==='pending').length===0 && <p style={{color:'var(--app-muted)'}}>No pending approvals.</p>}
+        </>)}
         {isStaff && (<>
           <div style={{display:'flex',gap:'8px',margin:'10px 0',flexWrap:'wrap'}}>
             <input placeholder="Search title..." value={search} onChange={e=>setSearch(e.target.value)} style={inp} />
@@ -396,6 +424,68 @@ export default function Dashboard(){
           </div>
         ))}
         {rents.length===0 && <p style={{color:'var(--app-muted)'}}>No rent records.</p>}
+      </>)}
+
+      {tab==='commissions' && (<>
+        <h3>Commissions</h3>
+        <div style={{display:'flex',gap:'10px',flexWrap:'wrap',margin:'12px 0'}}>
+          <div style={card}><small style={{color:'var(--app-muted)'}}>Total Earned ₹</small><h3 style={{margin:'4px 0'}}>{commissions.reduce((a,c)=>a+Number(c.amount||0),0)}</h3></div>
+          <div style={card}><small style={{color:'var(--app-muted)'}}>Pending ₹</small><h3 style={{margin:'4px 0',color:'#f59e0b'}}>{commissions.filter(c=>c.status==='pending').reduce((a,c)=>a+Number(c.amount||0),0)}</h3></div>
+          <div style={card}><small style={{color:'var(--app-muted)'}}>Paid ₹</small><h3 style={{margin:'4px 0',color:'#22c55e'}}>{commissions.filter(c=>c.status==='paid').reduce((a,c)=>a+Number(c.amount||0),0)}</h3></div>
+        </div>
+        <small style={{color:'var(--app-muted)'}}>2% of property price on every approved booking.</small>
+        {commissions.map(c=>(
+          <div key={c._id} style={{background:'var(--app-card)',padding:'12px',margin:'8px 0',borderRadius:'10px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px',flexWrap:'wrap'}}>
+            <div>
+              <b>{c.property?.title||'Property'}</b> <small style={{color:'var(--app-muted)'}}>({c.percent}%)</small><br/>
+              <span style={{fontSize:'18px',fontWeight:'800'}}>₹{c.amount}</span>{' '}
+              <span style={{color:stColor(c.status),fontWeight:'bold',fontSize:'12px'}}>{c.status.toUpperCase()}</span><br/>
+              {role==='admin' && c.agentId?.fullName && <small style={{color:'var(--app-muted)'}}>Agent: {c.agentId.fullName} ({c.agentId.email})</small>}
+            </div>
+            {role==='admin' && c.status==='pending' && <button onClick={()=>payCommission(c._id)} style={btn('#22c55e')}>Mark Paid</button>}
+          </div>
+        ))}
+        {commissions.length===0 && <p style={{color:'var(--app-muted)'}}>No commissions yet.</p>}
+      </>)}
+
+      {tab==='expenses' && (<>
+        <h3>Expenses & Profit</h3>
+        {(()=>{ const myIds = new Set(myProps.map(p=>String(p._id)));
+          const collected = rents.filter(rt=> myIds.has(String(rt.property?._id||rt.property)) && rt.status==='paid').reduce((a,rt)=>a+Number(rt.amount||0),0);
+          const spent = expenses.reduce((a,e)=>a+Number(e.amount||0),0);
+          return (
+          <div style={{display:'flex',gap:'10px',flexWrap:'wrap',margin:'12px 0'}}>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Collected ₹</small><h3 style={{margin:'4px 0',color:'#22c55e'}}>{collected}</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Total Expenses ₹</small><h3 style={{margin:'4px 0',color:'#ef4444'}}>{spent}</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Net Profit ₹</small><h3 style={{margin:'4px 0',color:collected-spent>=0?'#22c55e':'#ef4444'}}>{collected-spent}</h3></div>
+          </div> ); })()}
+        <form onSubmit={addExpense} style={{display:'grid',gap:'8px',maxWidth:'500px',marginBottom:'16px',background:'var(--app-card)',padding:'14px',borderRadius:'10px'}}>
+          <b>Add Expense</b>
+          <select value={expForm.propertyId} onChange={e=>setExpForm({...expForm,propertyId:e.target.value})} required style={inp}>
+            <option value="">Select Property</option>
+            {myProps.map(p=><option key={p._id} value={p._id}>{p.title} - {p.city}</option>)}
+          </select>
+          <input placeholder="Title (e.g. Plumbing repair)" value={expForm.title} onChange={e=>setExpForm({...expForm,title:e.target.value})} required style={inp} />
+          <select value={expForm.category} onChange={e=>setExpForm({...expForm,category:e.target.value})} style={inp}>
+            <option>Maintenance</option><option>Repair</option><option>Tax</option><option>Insurance</option><option>Utilities</option><option>Other</option>
+          </select>
+          <input placeholder="Amount ₹" type="number" value={expForm.amount} onChange={e=>setExpForm({...expForm,amount:e.target.value})} required style={inp} />
+          <input type="date" value={expForm.date} onChange={e=>setExpForm({...expForm,date:e.target.value})} style={inp} />
+          <input placeholder="Notes (optional)" value={expForm.notes} onChange={e=>setExpForm({...expForm,notes:e.target.value})} style={inp} />
+          <button type="submit" style={btn('#22c55e')}>Add Expense</button>
+        </form>
+        {expenses.map(e=>(
+          <div key={e._id} style={{background:'var(--app-card)',padding:'12px',margin:'8px 0',borderRadius:'10px',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px'}}>
+            <div>
+              <b>{e.title}</b> <small style={{color:'var(--app-muted)'}}>({e.category})</small><br/>
+              <span style={{fontWeight:'800'}}>₹{e.amount}</span>{' '}
+              <small style={{color:'var(--app-muted)'}}>{e.property?.title}{e.date && ' | '+new Date(e.date).toLocaleDateString()}</small>
+              {e.notes && <><br/><small style={{color:'var(--app-muted)'}}>{e.notes}</small></>}
+            </div>
+            <button onClick={()=>delExpense(e._id)} style={btn('#ef4444')}>Delete</button>
+          </div>
+        ))}
+        {expenses.length===0 && <p style={{color:'var(--app-muted)'}}>No expenses yet.</p>}
       </>)}
 
       {tab==='leases' && (<>
