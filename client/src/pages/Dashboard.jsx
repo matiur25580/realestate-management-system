@@ -12,6 +12,7 @@ import Visits from '../components/Visits';
 import PnLReport from '../components/PnLReport';
 import TenantRating from '../components/TenantRating';
 import RentReminder from '../components/RentReminder';
+import PropertyGallery from '../components/PropertyGallery';
 
 const uidFromToken = ()=>{ try{ const t=localStorage.getItem('token'); return JSON.parse(atob(t.split('.')[1])).id; }catch(e){ return null; } };
 const card = { background:'var(--app-card)', padding:'14px', borderRadius:'10px', minWidth:'130px', flex:'1' };
@@ -369,7 +370,7 @@ export default function Dashboard(){
         <h3>{isOwner ? 'My Properties' : 'Properties ('+myProps.length+')'}</h3>
         {myProps.map(p=>(
           <div key={p._id} style={{background:'var(--app-card)',padding:'12px',margin:'8px 0',borderRadius:'10px'}}>
-            {p.image && <img src={p.image} alt="" style={{width:'100%',maxHeight:'200px',objectFit:'cover',borderRadius:'8px',marginBottom:'8px'}} />}
+            <PropertyGallery property={p} height={200} />
             <b>{p.title}</b> - {p.type} - ₹{p.price}<br/>
             <small style={{color:'var(--app-muted)'}}>{p.address}, {p.city} | {p.area} sqft</small>
             {revSummary[p._id] && (
