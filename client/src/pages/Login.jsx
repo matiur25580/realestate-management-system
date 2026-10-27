@@ -1,8 +1,9 @@
-import { useState } from 'react'
-import ThemeToggle from '../components/ThemeToggle';;
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
+import ThemeToggle from '../components/ThemeToggle';
+import { pageWrap, card, logo, title, subtitle, label, inp, btn, link, footer } from '../components/authStyles';
 
 export default function Login(){
   const [role, setRole] = useState('Tenant');
@@ -24,24 +25,30 @@ export default function Login(){
   };
 
   return (
-    <div style={{minHeight:'100vh',display:'flex',justifyContent:'center',alignItems:'center',background:'var(--app-bg)',color:'var(--app-text)',padding:'20px'}}>
+    <div style={pageWrap}>
       <div style={{position:'fixed',top:16,right:16,zIndex:50}}><ThemeToggle /></div>
-      <form onSubmit={handleLogin} style={{width:'100%',maxWidth:'400px',background:'var(--app-card)',padding:'30px',borderRadius:'12px'}}>
-        <h2 style={{textAlign:'center'}}>RealEstate Login</h2>
-        <label>Account Role</label>
-        <select value={role} onChange={e=>setRole(e.target.value)} style={{width:'100%',padding:'10px',margin:'8px 0'}}>
+      <form onSubmit={handleLogin} style={card}>
+        <div style={logo}>🏠</div>
+        <h2 style={title}>RealEstate Pro</h2>
+        <p style={subtitle}>Sign in to your account</p>
+
+        <label style={label}>Account Role</label>
+        <select value={role} onChange={e=>setRole(e.target.value)} className="auth-inp" style={inp}>
           <option>Admin</option><option>Agent</option><option>Owner</option><option>Tenant</option><option>Maintenance</option>
         </select>
-        <label>Email or Unique ID</label>
-        <input value={emailOrId} onChange={e=>setEmailOrId(e.target.value)} placeholder="Email or Unique ID" style={{width:'100%',padding:'10px',margin:'8px 0'}} required />
-        <label>Password</label>
+
+        <label style={label}>Email or Unique ID</label>
+        <input value={emailOrId} onChange={e=>setEmailOrId(e.target.value)} placeholder="Enter email or unique ID" className="auth-inp" style={inp} required />
+
+        <label style={label}>Password</label>
         <div style={{position:'relative'}}>
-          <input type={show?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password" style={{width:'100%',padding:'10px',margin:'8px 0'}} required />
-          <span onClick={()=>setShow(!show)} style={{position:'absolute',right:'10px',top:'18px',cursor:'pointer'}}>👁️</span>
+          <input type={show?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter password" className="auth-inp" style={{...inp, paddingRight:'42px'}} required />
+          <span onClick={()=>setShow(!show)} style={{position:'absolute',right:'12px',top:'50%',transform:'translateY(-50%)',cursor:'pointer',fontSize:'18px'}}>👁️</span>
         </div>
-        <p style={{textAlign:"right",marginTop:"4px"}}><Link to="/forgot-password" style={{color:"#60a5fa",fontSize:"14px"}}>Forgot Password?</Link></p>
-        <button type="submit" style={{width:'100%',padding:'12px',background:'#3b82f6',border:'none',color:'var(--app-text)',borderRadius:'8px',marginTop:'10px'}}>Login</button>
-        <p style={{textAlign:'center',marginTop:'12px'}}>No account? <Link to="/register" style={{color:'#60a5fa'}}>Register</Link></p>
+
+        <p style={{textAlign:'right',margin:'10px 0 0'}}><Link to="/forgot-password" style={link}>Forgot Password?</Link></p>
+        <button type="submit" className="auth-btn" style={btn('#3b82f6')}>Login</button>
+        <p style={footer}>No account? <Link to="/register" style={link}>Create one</Link></p>
       </form>
     </div>
   );

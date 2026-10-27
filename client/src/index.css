@@ -131,3 +131,8 @@ code {
   background: var(--app-bg);
   color: var(--app-text);
 }
+
+/* ===== Auth inputs ===== */
+.auth-inp:focus { border-color:#3b82f6 !important; box-shadow:0 0 0 3px rgba(59,130,246,0.25); }
+.auth-btn:hover { filter:brightness(1.12); }
+.auth-btn:active { transform:scale(0.99); }
