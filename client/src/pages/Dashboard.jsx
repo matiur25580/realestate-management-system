@@ -67,6 +67,7 @@ export default function Dashboard(){
         setRents((await api.get('/rents/my')).data);
         setLeases((await api.get('/leases/my')).data);
         setWishItems((await api.get('/wishlist/my')).data.filter(x=>x.property));
+        setStats((await api.get('/analytics/summary')).data);
       } else if(isMaint){
         setMaint((await api.get('/maintenance/all')).data);
       } else {
@@ -182,13 +183,21 @@ export default function Dashboard(){
       </div>
       <p style={{color:'var(--app-muted)'}}>ID: {user?.uniqueId}</p>
 
-      {(isStaff||isOwner) && stats && (
+      {(isStaff||isOwner||isTenant) && stats && (
         <div style={{display:'flex',gap:'10px',flexWrap:'wrap',margin:'12px 0'}}>
-          <div style={card}><small style={{color:'var(--app-muted)'}}>Properties</small><h3 style={{margin:'4px 0'}}>{stats.properties}</h3></div>
-          <div style={card}><small style={{color:'var(--app-muted)'}}>Bookings (pending)</small><h3 style={{margin:'4px 0'}}>{stats.bookings} ({stats.pendingBookings})</h3></div>
-          <div style={card}><small style={{color:'var(--app-muted)'}}>Maintenance (open)</small><h3 style={{margin:'4px 0'}}>{stats.maintenance} ({stats.openMaint})</h3></div>
-          <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Due ₹</small><h3 style={{margin:'4px 0',color:'#f59e0b'}}>{stats.pendingAmount}</h3></div>
-          <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Collected ₹</small><h3 style={{margin:'4px 0',color:'#22c55e'}}>{stats.collectedAmount}</h3></div>
+          {isTenant ? (<>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>My Bookings (pending)</small><h3 style={{margin:'4px 0'}}>{stats.bookings} ({stats.pendingBookings})</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>My Maintenance (open)</small><h3 style={{margin:'4px 0'}}>{stats.maintenance} ({stats.openMaint})</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Due ₹</small><h3 style={{margin:'4px 0',color:'#f59e0b'}}>{stats.pendingAmount}</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Paid ₹</small><h3 style={{margin:'4px 0',color:'#22c55e'}}>{stats.collectedAmount}</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Active Leases</small><h3 style={{margin:'4px 0'}}>{stats.activeLeases}</h3></div>
+          </>) : (<>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Properties</small><h3 style={{margin:'4px 0'}}>{stats.properties}</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Bookings (pending)</small><h3 style={{margin:'4px 0'}}>{stats.bookings} ({stats.pendingBookings})</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Maintenance (open)</small><h3 style={{margin:'4px 0'}}>{stats.maintenance} ({stats.openMaint})</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Due ₹</small><h3 style={{margin:'4px 0',color:'#f59e0b'}}>{stats.pendingAmount}</h3></div>
+            <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Collected ₹</small><h3 style={{margin:'4px 0',color:'#22c55e'}}>{stats.collectedAmount}</h3></div>
+          </>)}
         </div>
       )}
 
