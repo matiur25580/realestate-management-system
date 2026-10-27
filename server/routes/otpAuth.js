@@ -45,6 +45,7 @@ router.post('/login', async (req,res)=>{
   try{
     const { role, emailOrId, password } = req.body;
     let user = await User.findOne({ $or: [{ email: emailOrId }, { uniqueId: emailOrId }], role });
+    if(user && user.isActive===false) return res.status(403).json({msg:'Account deactivated. Contact admin.'});
     if(!user) return res.status(400).json({ message: "this email doesn't registered, plz first registered" });
     const ok = await bcrypt.compare(password, user.password);
     if(!ok) return res.status(400).json({ message: 'Invalid credentials' });

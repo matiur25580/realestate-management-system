@@ -8,6 +8,7 @@ const propertySchema = new mongoose.Schema({
   city: { type: String, required: true },
   image: { type: String, default: '' },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+  agentId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, { timestamps: true });
 module.exports = mongoose.model('Property', propertySchema);

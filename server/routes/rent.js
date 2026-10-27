@@ -8,6 +8,16 @@ const auth = require('../middleware/auth');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 
+const scopedIds = async (req)=>{
+  const r = rl(req);
+  if(r==='admin') return null;
+  const pq = r==='owner'
+    ? { $or: [{ ownerId: req.user.id }, { owner: req.user.id }] }
+    : { agentId: req.user.id };
+  const props = await Property.find(pq).select('_id');
+  return props.map(p=>p._id);
+};
+
 router.post('/', auth, async (req,res)=>{
   try{
     const r = rl(req);
@@ -33,11 +43,8 @@ router.get('/my', auth, async (req,res)=>{
 router.get('/all', auth, async (req,res)=>{
   const r = rl(req);
   if(!['admin','agent','owner'].includes(r)) return res.status(403).json({ message: 'Not allowed' });
-  let q = {};
-  if(r==='owner'){
-    const props = await Property.find({ $or: [{ ownerId: req.user.id }, { owner: req.user.id }] }).select('_id');
-    q.property = { $in: props.map(p=>p._id) };
-  }
+  const ids = await scopedIds(req);
+  const q = ids ? { property: { $in: ids } } : {};
   const list = await Rent.find(q).populate('property','title city').populate('tenant','fullName email').sort({createdAt:-1});
   res.json(list);
 });
