@@ -1,23 +1,25 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import { useToast } from '../context/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 import { pageWrap, card, logo, title, subtitle, label, inp, btn, link, footer } from '../components/authStyles';
 
 export default function Register(){
+  const toast = useToast();
   const [form, setForm] = useState({ fullName:'', email:'', contactNumber:'', dob:'', role:'Tenant', password:'', confirm:'' });
   const nav = useNavigate();
   const set = (k)=> (e)=> setForm({...form,[k]:e.target.value});
 
   const handle = async (e)=>{
     e.preventDefault();
-    if(form.password !== form.confirm) return alert('Password mismatch');
-    if(form.dob.length !== 8) return alert('DOB must be DDMMYYYY 8 digits');
+    if(form.password !== form.confirm) return toast.error('Password mismatch');
+    if(form.dob.length !== 8) return toast.error('DOB must be DDMMYYYY 8 digits');
     try{
       await api.post('/auth/register', form);
       localStorage.setItem('pendingEmail', form.email);
       nav('/verify-otp');
-    }catch(err){ alert(err.response?.data?.message || 'Failed'); }
+    }catch(err){ toast.error(err.response?.data?.message || 'Failed'); }
   };
 
   return (

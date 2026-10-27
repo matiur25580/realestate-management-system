@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useToast } from '../context/ToastContext';
 import ThemeToggle from '../components/ThemeToggle';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -20,6 +21,7 @@ const ROLE_META = {
 const fmtD = (d)=> d ? new Date(d).toLocaleDateString() : '';
 
 export default function Dashboard(){
+  const toast = useToast();
   const { user, logout } = useAuth();
   const nav = useNavigate();
   const role = (user?.role||'').toLowerCase();
@@ -84,7 +86,7 @@ export default function Dashboard(){
   const addProp = async (e)=>{
     e.preventDefault();
     try{ await api.post('/properties', { ...form, price: Number(form.price) }); }
-    catch(err){ return alert(err.response?.data?.msg || 'Failed'); }
+    catch(err){ return toast.error(err.response?.data?.msg || 'Failed'); }
     setForm({ title:'', type:'Flat', price:'', area:'', address:'', city:'', image:'', ownerEmailOrId:'' });
     load();
   };
@@ -92,22 +94,22 @@ export default function Dashboard(){
   const bookProp = async (id)=>{
     const msg = prompt('Booking message:'); if(!msg) return;
     await api.post('/bookings', { propertyId: id, message: msg });
-    alert('Booking request sent'); load();
+    toast.success('Booking request sent'); load();
   };
   const reqMaint = async (id)=>{
     const issue = prompt('Maintenance issue:'); if(!issue) return;
     await api.post('/maintenance', { propertyId: id, issue });
-    alert('Maintenance requested'); load();
+    toast.success('Maintenance requested'); load();
   };
-  const updateBooking = async (id, status)=>{ await api.put('/bookings/'+id, { status }); alert('Tenant ke email pathano hoyeche'); load(); };
+  const updateBooking = async (id, status)=>{ await api.put('/bookings/'+id, { status }); toast.success('Booking approved, tenant ke email pathano hoyeche'); load(); };
   const updateMaint = async (id, status)=>{ await api.put('/maintenance/'+id, { status }); load(); };
   const addRent = async (e)=>{
     e.preventDefault();
     try{
       await api.post('/rents', { ...rentForm, amount: Number(rentForm.amount) });
       setRentForm({ propertyId:'', tenantEmailOrId:'', amount:'', month:'' });
-      load(); alert('Rent record added, tenant ke email geche');
-    }catch(err){ alert(err.response?.data?.message || 'Failed'); }
+      load(); toast.success('Rent record added, tenant ke email geche');
+    }catch(err){ toast.error(err.response?.data?.message || 'Failed'); }
   };
   const markRentPaid = async (id)=>{ await api.put('/rents/'+id, { status:'paid' }); load(); };
   const addLease = async (e)=>{
@@ -115,8 +117,8 @@ export default function Dashboard(){
     try{
       await api.post('/leases', leaseForm);
       setLeaseForm({ propertyId:'', tenantEmailOrId:'', startDate:'', endDate:'', monthlyRent:'', deposit:'', terms:'' });
-      load(); alert('Lease created, tenant ke email geche');
-    }catch(err){ alert(err.response?.data?.message || 'Failed'); }
+      load(); toast.success('Lease created, tenant ke email geche');
+    }catch(err){ toast.error(err.response?.data?.message || 'Failed'); }
   };
   const updateLease = async (id, status)=>{ if(!confirm('Lease '+status+'?')) return; await api.put('/leases/'+id, { status }); load(); };
   const toggleWish = async (pid)=>{
@@ -128,10 +130,10 @@ export default function Dashboard(){
   const addReview = async (pid)=>{
     const rating = prompt('Rating (1-5):'); if(!rating) return;
     const r = parseInt(rating);
-    if(!r || r<1 || r>5) return alert('Rating must be 1-5');
+    if(!r || r<1 || r>5) return toast.error('Rating must be 1-5');
     const comment = prompt('Review comment (optional):') || '';
-    try{ await api.post('/reviews', { propertyId: pid, rating: r, comment }); alert('Review added'); }
-    catch(err){ return alert(err.response?.data?.message||'Failed'); }
+    try{ await api.post('/reviews', { propertyId: pid, rating: r, comment }); toast.success('Review added'); }
+    catch(err){ return toast.error(err.response?.data?.message||'Failed'); }
     setRevSummary((await api.get('/reviews/summary')).data);
     if(revFor===pid) setRevList((await api.get('/reviews/property/'+pid)).data.reviews);
   };
@@ -154,7 +156,7 @@ export default function Dashboard(){
       a.href=url; a.download='rent-receipt-'+month+'.pdf';
       document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(url);
-    }catch(e){ alert('Download failed'); }
+    }catch(e){ toast.error('Download failed'); }
   };
 
   const tabs = isMaint

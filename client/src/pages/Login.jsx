@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import { useToast } from '../context/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +7,7 @@ import ThemeToggle from '../components/ThemeToggle';
 import { pageWrap, card, logo, title, subtitle, label, inp, btn, link, footer } from '../components/authStyles';
 
 export default function Login(){
+  const toast = useToast();
   const [role, setRole] = useState('Tenant');
   const [emailOrId, setEmailOrId] = useState('');
   const [password, setPassword] = useState('');
@@ -20,7 +22,7 @@ export default function Login(){
       login(res.data);
       nav('/dashboard');
     }catch(err){
-      alert(err.response?.data?.message || 'Login failed');
+      toast.error(err.response?.data?.message || 'Login failed');
     }
   };
 

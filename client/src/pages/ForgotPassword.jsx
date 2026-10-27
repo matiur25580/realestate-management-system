@@ -1,10 +1,12 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react'
+import { useToast } from '../context/ToastContext';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import ThemeToggle from '../components/ThemeToggle';
 import { pageWrap, card, logo, title, subtitle, label, inp, btn, link, footer, otpBox } from '../components/authStyles';
 
 export default function ForgotPassword(){
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['','','','','','']);
@@ -25,13 +27,13 @@ export default function ForgotPassword(){
 
   const sendOtp = async (e)=>{
     e.preventDefault();
-    if(!email.trim()) return alert('Enter your email');
+    if(!email.trim()) return toast.error('Enter your email');
     try{
       const res = await api.post('/auth/forgot-password', { email: email.trim() });
-      alert(res.data.message);
+      toast.success(res.data.message);
       setStep(2); setSeconds(300); setOtp(['','','','','','']);
       setTimeout(()=> boxRefs.current[0]?.focus(), 100);
-    }catch(err){ alert(err.response?.data?.message || 'Failed to send OTP'); }
+    }catch(err){ toast.error(err.response?.data?.message || 'Failed to send OTP'); }
   };
 
   const handleBox = (i, v)=>{
@@ -43,14 +45,14 @@ export default function ForgotPassword(){
   const resetPw = async (e)=>{
     e.preventDefault();
     const code = otp.join('');
-    if(code.length!==6) return alert('Enter 6-digit OTP');
-    if(newPassword.length<6) return alert('Password minimum 6 characters');
-    if(newPassword!==confirm) return alert('Passwords do not match');
+    if(code.length!==6) return toast.error('Enter 6-digit OTP');
+    if(newPassword.length<6) return toast.error('Password minimum 6 characters');
+    if(newPassword!==confirm) return toast.error('Passwords do not match');
     try{
       const res = await api.post('/auth/reset-password', { email: email.trim(), otp: code, newPassword });
-      alert(res.data.message);
+      toast.success(res.data.message);
       nav('/login');
-    }catch(err){ alert(err.response?.data?.message || 'Reset failed'); }
+    }catch(err){ toast.error(err.response?.data?.message || 'Reset failed'); }
   };
 
   return (

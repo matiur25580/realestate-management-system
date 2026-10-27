@@ -136,3 +136,7 @@ code {
 .auth-inp:focus { border-color:#3b82f6 !important; box-shadow:0 0 0 3px rgba(59,130,246,0.25); }
 .auth-btn:hover { filter:brightness(1.12); }
 .auth-btn:active { transform:scale(0.99); }
+
+/* ===== Toast ===== */
+@keyframes toastIn { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+.toast-in { animation:toastIn 0.25s ease; }

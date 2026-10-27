@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
+import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 export default function VerifyOtp(){
+  const toast = useToast();
   const [otp, setOtp] = useState('');
   const [sec, setSec] = useState(300);
   const nav = useNavigate();
@@ -15,9 +17,9 @@ export default function VerifyOtp(){
     e.preventDefault();
     try{
       const res = await api.post('/auth/verify-otp', { email, otp });
-      alert(res.data.message);
+      toast.success(res.data.message);
       nav('/login');
-    }catch(err){ alert(err.response?.data?.message); }
+    }catch(err){ toast.error(err.response?.data?.message); }
   };
   const mins = Math.floor(sec/60);
   const secs = sec%60;
