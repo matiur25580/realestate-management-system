@@ -50,6 +50,7 @@ export default function Dashboard(){
   const [revFor, setRevFor] = useState(null);
   const [revList, setRevList] = useState([]);
   const [wishItems, setWishItems] = useState([]);
+  const [maintStaff, setMaintStaff] = useState([]);
   const [commissions, setCommissions] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [expForm, setExpForm] = useState({ propertyId:'', title:'', category:'Other', amount:'', date:'', notes:'' });
@@ -59,6 +60,9 @@ export default function Dashboard(){
   const payCommission = async (id)=>{ try{ await api.put('/commissions/'+id+'/pay'); toast.success('Commission marked paid'); setCommissions((await api.get('/commissions/all')).data); }catch(e){ toast.error('Failed'); } };
   const addExpense = async (e)=>{ e.preventDefault(); try{ await api.post('/expenses', expForm); toast.success('Expense added'); setExpForm({ propertyId:'', title:'', category:'Other', amount:'', date:'', notes:'' }); setExpenses((await api.get('/expenses/my')).data); }catch(err){ toast.error(err.response?.data?.msg||'Failed'); } };
   const delExpense = async (id)=>{ try{ await api.delete('/expenses/'+id); toast.success('Deleted'); setExpenses(expenses.filter(x=>x._id!==id)); }catch(e){ toast.error('Failed'); } };
+  const setMaintPriority = async (id, priority)=>{ try{ await api.put('/maintenance/'+id, { priority }); setMaint(maint.map(m=> m._id===id ? {...m, priority} : m)); toast.success('Priority set to '+priority); }catch(e){ toast.error('Failed'); } };
+  const assignMaint = async (id, userId)=>{ try{ await api.put('/maintenance/'+id, { assignedTo: userId }); toast.success(userId?'Task assigned':'Unassigned'); load(); }catch(e){ toast.error('Failed'); } };
+  const renewLease = (l)=>{ setLeaseForm({ propertyId: l.property?._id||l.property||'', tenantEmailOrId: l.tenant?.email||'', startDate: l.endDate?l.endDate.slice(0,10):'', endDate:'', monthlyRent: l.monthlyRent||'', deposit: l.deposit||'', terms: l.terms||'' }); toast.info('Form pre-filled — notun end date diye submit koro'); window.scrollTo({top:0,behavior:'smooth'}); };
   const load = async ()=>{
     try{
       let url='/properties?';
@@ -85,6 +89,7 @@ export default function Dashboard(){
         setLeases((await api.get('/leases/all')).data);
         setStats((await api.get('/analytics/summary')).data);
         setCharts((await api.get('/analytics/charts')).data);
+        try{ if(role==='admin'){ const u = await api.get('/users/all'); const arr = u.data.users||u.data||[]; setMaintStaff(arr.filter(x=> (x.role||'').toLowerCase()==='maintenance')); } }catch(e){}
         try{ if(role==='admin'||role==='agent') setCommissions((await api.get(role==='admin'?'/commissions/all':'/commissions/my')).data); }catch(e){}
         try{ if(isOwner) setExpenses((await api.get('/expenses/my')).data); }catch(e){}
       }
@@ -181,6 +186,7 @@ export default function Dashboard(){
         if(isOwner) st.push(['expenses','Expenses']);
         return st; })();
 
+  const prioColor = (x)=> x==='urgent' ? '#ef4444' : x==='high' ? '#f59e0b' : x==='low' ? '#22c55e' : '#3b82f6';
   const stColor = (s)=> s==='approved'||s==='paid'||s==='done'||s==='active' ? '#22c55e' : (s==='rejected'||s==='expired' ? '#ef4444' : '#f59e0b');
 
   return (
@@ -377,13 +383,24 @@ export default function Dashboard(){
       {(tab==='maintenance'||tab==='tasks') && (<>
         <h3>{isTenant ? 'My Maintenance Requests' : isMaint ? 'Assigned Tasks' : 'Maintenance ('+maint.length+')'}</h3>
         {maint.map(m=>(
-          <div key={m._id} style={{background:'var(--app-border)',padding:'10px',margin:'6px 0',borderRadius:'8px'}}>
+          <div key={m._id} style={{background:'var(--app-border)',padding:'10px',margin:'6px 0',borderRadius:'8px',borderLeft:'4px solid '+prioColor(m.priority||'medium')}}>
             <b>{m.property?.title}</b> - {m.issue}
+            <span style={{fontSize:'11px',fontWeight:'bold',padding:'2px 8px',borderRadius:'10px',background:prioColor(m.priority||'medium'),color:'#fff',marginLeft:'6px'}}>{(m.priority||'medium').toUpperCase()}</span>
+            {isMaint && String(m.assignedTo?._id||m.assignedTo)===String(uid) && <span style={{fontSize:'11px',fontWeight:'bold',marginLeft:'6px'}}>⭐ MY TASK</span>}
             {m.tenant?.fullName && <><br/><small style={{color:'var(--app-muted)'}}>by {m.tenant.fullName}</small></>} - <span style={{color:stColor(m.status)}}>{m.status||'pending'}</span>
-            {(isStaff||isOwner||isMaint) && m.status!=='done' && (
-              <div style={{marginTop:'6px',display:'flex',gap:'6px',flexWrap:'wrap'}}>
-                <button onClick={()=>updateMaint(m._id,'in-progress')} style={btn('#f59e0b')}>Start</button>
-                <button onClick={()=>updateMaint(m._id,'done')} style={btn('#22c55e')}>Done</button>
+            {m.assignedTo?.fullName && <><br/><small style={{color:'var(--app-muted)'}}>👷 {m.assignedTo.fullName}</small></>}
+            {(isStaff||isOwner||isMaint) && (
+              <div style={{marginTop:'6px',display:'flex',gap:'6px',flexWrap:'wrap',alignItems:'center'}}>
+                {m.status!=='done' && <><button onClick={()=>updateMaint(m._id,'in-progress')} style={btn('#f59e0b')}>Start</button><button onClick={()=>updateMaint(m._id,'done')} style={btn('#22c55e')}>Done</button></>}
+                <select value={m.priority||'medium'} onChange={e=>setMaintPriority(m._id,e.target.value)} style={inp} title="Priority">
+                  <option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="urgent">Urgent</option>
+                </select>
+                {role==='admin' && (
+                  <select value={m.assignedTo?._id||m.assignedTo||''} onChange={e=>assignMaint(m._id,e.target.value)} style={inp} title="Assign staff">
+                    <option value="">Assign staff...</option>
+                    {maintStaff.map(u=><option key={u._id} value={u._id}>{u.fullName}</option>)}
+                  </select>
+                )}
               </div>
             )}
           </div>
@@ -516,6 +533,7 @@ export default function Dashboard(){
             {l.terms && <small style={{color:'var(--app-muted)'}}>Terms: {l.terms}</small>}
             <div style={{marginTop:'6px'}}>
               <span style={{color:stColor(l.status),fontWeight:'bold'}}>{l.status.toUpperCase()}</span>
+              {(isStaff||isOwner) && l.status==='active' && <button onClick={()=>renewLease(l)} style={{...btn('#8b5cf6'),marginLeft:'8px',padding:'6px 12px'}}>Renew</button>}
               {l.status==='active' && l.daysRemaining>=0 && l.daysRemaining<=30 && <span style={{color:'#f59e0b'}}> — Expiring in {l.daysRemaining} days!</span>}
               {l.status==='active' && l.daysRemaining>30 && <small style={{color:'var(--app-muted)'}}> — {l.daysRemaining} days left</small>}
               {l.status==='expired' && <span style={{color:'#ef4444'}}> — Expired</span>}

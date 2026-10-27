@@ -14,7 +14,7 @@ router.post('/', auth, async (req, res) => {
 });
 
 router.get('/my', auth, async (req, res) => {
-  const list = await Maintenance.find({ tenant: req.user.id }).populate('property');
+  const list = await Maintenance.find({ tenant: req.user.id }).populate('property').populate('assignedTo','fullName');
   res.json(list);
 });
 
@@ -29,7 +29,7 @@ router.get('/all', auth, async (req, res) => {
     const props = await Property.find(pq).select('_id');
     q.property = { $in: props.map(p=>p._id) };
   }
-  const list = await Maintenance.find(q).populate('property').populate('tenant','fullName contactNumber');
+  const list = await Maintenance.find(q).populate('property').populate('tenant','fullName contactNumber').populate('assignedTo','fullName');
   res.json(list);
 });
 
@@ -53,7 +53,10 @@ router.put('/:id', auth, async (req, res) => {
   }
   if(req.body.status) m.status = req.body.status;
   if(req.body.note !== undefined) m.note = req.body.note;
+  if(req.body.priority) m.priority = req.body.priority;
+  if(req.body.assignedTo !== undefined && r==='admin') m.assignedTo = req.body.assignedTo || null;
   await m.save();
+  if(req.body.assignedTo && r==='admin'){ await notify(req.body.assignedTo, 'New Task Assigned', 'Task assigned: "'+m.issue+'" ('+(m.property?m.property.title:'')+', Priority: '+m.priority+').', 'warning'); }
   await notify(m.tenant?._id||m.tenant, 'Maintenance '+(req.body.status||'updated'), 'Your maintenance request for "'+(m.property?m.property.title:'your property')+'" is now '+(req.body.status||'updated')+'.', 'info');
   if(m.tenant && m.tenant.email && req.body.status){
     try{
