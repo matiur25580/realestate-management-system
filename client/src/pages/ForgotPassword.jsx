@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react'
+import ThemeToggle from '../components/ThemeToggle';;
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
@@ -52,28 +53,29 @@ export default function ForgotPassword(){
   };
 
   return (
-    <div style={{minHeight:'100vh',display:'flex',justifyContent:'center',alignItems:'center',background:'#0f172a',color:'#fff',padding:'20px'}}>
+    <div style={{minHeight:'100vh',display:'flex',justifyContent:'center',alignItems:'center',background:'var(--app-bg)',color:'var(--app-text)',padding:'20px'}}>
+      <div style={{position:'fixed',top:16,right:16,zIndex:50}}><ThemeToggle /></div>
       {step===1 ? (
-        <form onSubmit={sendOtp} style={{width:'100%',maxWidth:'400px',background:'#1e293b',padding:'30px',borderRadius:'12px'}}>
+        <form onSubmit={sendOtp} style={{width:'100%',maxWidth:'400px',background:'var(--app-card)',padding:'30px',borderRadius:'12px'}}>
           <h2 style={{textAlign:'center'}}>Forgot Password</h2>
-          <p style={{textAlign:'center',color:'#94a3b8',fontSize:'14px'}}>Registered email dao, OTP jabe</p>
+          <p style={{textAlign:'center',color:'var(--app-muted)',fontSize:'14px'}}>Registered email dao, OTP jabe</p>
           <label>Email</label>
           <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="Registered email" style={{width:'100%',padding:'10px',margin:'8px 0'}} required />
-          <button type="submit" style={{width:'100%',padding:'12px',background:'#3b82f6',border:'none',color:'#fff',borderRadius:'8px',marginTop:'10px'}}>Send OTP</button>
+          <button type="submit" style={{width:'100%',padding:'12px',background:'#3b82f6',border:'none',color:'var(--app-text)',borderRadius:'8px',marginTop:'10px'}}>Send OTP</button>
           <p style={{textAlign:'center',marginTop:'12px'}}><Link to="/login" style={{color:'#60a5fa'}}>Back to Login</Link></p>
         </form>
       ) : (
-        <form onSubmit={resetPw} style={{width:'100%',maxWidth:'400px',background:'#1e293b',padding:'30px',borderRadius:'12px'}}>
+        <form onSubmit={resetPw} style={{width:'100%',maxWidth:'400px',background:'var(--app-card)',padding:'30px',borderRadius:'12px'}}>
           <h2 style={{textAlign:'center'}}>Reset Password</h2>
-          <p style={{textAlign:'center',color:'#94a3b8',fontSize:'14px'}}>OTP sent to {email}</p>
+          <p style={{textAlign:'center',color:'var(--app-muted)',fontSize:'14px'}}>OTP sent to {email}</p>
           <label>6-digit OTP</label>
           <div style={{display:'flex',gap:'8px',justifyContent:'center',margin:'10px 0'}}>
             {otp.map((d,i)=>(
-              <input key={i} ref={el=>boxRefs.current[i]=el} value={d} onChange={e=>handleBox(i,e.target.value)} onKeyDown={e=>{ if(e.key==='Backspace' && !otp[i] && i>0) boxRefs.current[i-1]?.focus(); }} maxLength={1} inputMode="numeric" style={{width:'45px',height:'50px',textAlign:'center',fontSize:'20px',borderRadius:'8px',border:'1px solid #475569',background:'#0f172a',color:'#fff'}} />
+              <input key={i} ref={el=>boxRefs.current[i]=el} value={d} onChange={e=>handleBox(i,e.target.value)} onKeyDown={e=>{ if(e.key==='Backspace' && !otp[i] && i>0) boxRefs.current[i-1]?.focus(); }} maxLength={1} inputMode="numeric" style={{width:'45px',height:'50px',textAlign:'center',fontSize:'20px',borderRadius:'8px',border:'1px solid #475569',background:'var(--app-bg)',color:'var(--app-text)'}} />
             ))}
           </div>
           <p style={{textAlign:'center',color: seconds>0 ? '#22c55e' : '#ef4444'}}>{seconds>0 ? `OTP valid: ${fmt(seconds)}` : 'OTP expired'}</p>
-          {seconds<=0 && <button type="button" onClick={sendOtp} style={{width:'100%',padding:'10px',background:'#f59e0b',border:'none',color:'#fff',borderRadius:'8px',marginBottom:'8px'}}>Resend OTP</button>}
+          {seconds<=0 && <button type="button" onClick={sendOtp} style={{width:'100%',padding:'10px',background:'#f59e0b',border:'none',color:'var(--app-text)',borderRadius:'8px',marginBottom:'8px'}}>Resend OTP</button>}
           <label>New Password</label>
           <div style={{position:'relative'}}>
             <input type={show?'text':'password'} value={newPassword} onChange={e=>setNewPassword(e.target.value)} placeholder="New password (min 6)" style={{width:'100%',padding:'10px',margin:'8px 0'}} required />
@@ -81,7 +83,7 @@ export default function ForgotPassword(){
           </div>
           <label>Confirm Password</label>
           <input type={show?'text':'password'} value={confirm} onChange={e=>setConfirm(e.target.value)} placeholder="Confirm new password" style={{width:'100%',padding:'10px',margin:'8px 0'}} required />
-          <button type="submit" style={{width:'100%',padding:'12px',background:'#22c55e',border:'none',color:'#fff',borderRadius:'8px',marginTop:'10px'}}>Reset Password</button>
+          <button type="submit" style={{width:'100%',padding:'12px',background:'#22c55e',border:'none',color:'var(--app-text)',borderRadius:'8px',marginTop:'10px'}}>Reset Password</button>
           <p style={{textAlign:'center',marginTop:'12px'}}><Link to="/login" style={{color:'#60a5fa'}}>Back to Login</Link></p>
         </form>
       )}

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState } from 'react'
+import ThemeToggle from '../components/ThemeToggle';;
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 
@@ -16,8 +17,9 @@ export default function Register(){
     }catch(err){ alert(err.response?.data?.message || 'Failed'); }
   };
   return (
-    <div style={{minHeight:'100vh',display:'flex',justifyContent:'center',alignItems:'center',background:'#0f172a',color:'#fff',padding:'20px'}}>
-      <form onSubmit={handle} style={{width:'100%',maxWidth:'420px',background:'#1e293b',padding:'28px',borderRadius:'12px'}}>
+    <div style={{minHeight:'100vh',display:'flex',justifyContent:'center',alignItems:'center',background:'var(--app-bg)',color:'var(--app-text)',padding:'20px'}}>
+      <div style={{position:'fixed',top:16,right:16,zIndex:50}}><ThemeToggle /></div>
+      <form onSubmit={handle} style={{width:'100%',maxWidth:'420px',background:'var(--app-card)',padding:'28px',borderRadius:'12px'}}>
         <h2 style={{textAlign:'center'}}>Register</h2>
         <input placeholder="Full Name" value={form.fullName} onChange={e=>setForm({...form,fullName:e.target.value})} style={{width:'100%',padding:'10px',margin:'6px 0'}} required />
         <input placeholder="Email" type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})} style={{width:'100%',padding:'10px',margin:'6px 0'}} required />
@@ -28,7 +30,7 @@ export default function Register(){
         </select>
         <input type="password" placeholder="Password" value={form.password} onChange={e=>setForm({...form,password:e.target.value})} style={{width:'100%',padding:'10px',margin:'6px 0'}} required />
         <input type="password" placeholder="Confirm Password" value={form.confirm} onChange={e=>setForm({...form,confirm:e.target.value})} style={{width:'100%',padding:'10px',margin:'6px 0'}} required />
-        <button type="submit" style={{width:'100%',padding:'12px',background:'#22c55e',border:'none',color:'#fff',borderRadius:'8px'}}>Send OTP</button>
+        <button type="submit" style={{width:'100%',padding:'12px',background:'#22c55e',border:'none',color:'var(--app-text)',borderRadius:'8px'}}>Send OTP</button>
         <p style={{textAlign:'center'}}>Have account? <Link to="/login" style={{color:'#60a5fa'}}>Login</Link></p>
       </form>
     </div>

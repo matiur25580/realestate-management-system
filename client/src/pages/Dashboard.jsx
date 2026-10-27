@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react'
+import ThemeToggle from '../components/ThemeToggle';
 import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 
 const uidFromToken = ()=>{ try{ const t=localStorage.getItem('token'); return JSON.parse(atob(t.split('.')[1])).id; }catch(e){ return null; } };
-const card = { background:'#1e293b', padding:'14px', borderRadius:'10px', minWidth:'130px', flex:'1' };
+const card = { background:'var(--app-card)', padding:'14px', borderRadius:'10px', minWidth:'130px', flex:'1' };
 const inp = { padding:'8px', borderRadius:'6px', border:'1px solid #475569' };
-const btn = (bg)=> ({ background:bg, color:'#fff', border:'none', padding:'8px 16px', borderRadius:'6px', cursor:'pointer' });
+const btn = (bg)=> ({ background:bg, color:'var(--app-text)', border:'none', padding:'8px 16px', borderRadius:'6px', cursor:'pointer' });
 const COLORS = ['#22c55e','#f59e0b','#ef4444','#3b82f6','#8b5cf6'];
 const fmtD = (d)=> d ? new Date(d).toLocaleDateString() : '';
 
@@ -158,40 +159,40 @@ export default function Dashboard(){
   const stColor = (s)=> s==='approved'||s==='paid'||s==='done'||s==='active' ? '#22c55e' : (s==='rejected'||s==='expired' ? '#ef4444' : '#f59e0b');
 
   return (
-    <div style={{background:'#0f172a',minHeight:'100vh',color:'#fff',padding:'16px'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'8px'}}>
+    <div style={{background:'var(--app-bg)',minHeight:'100vh',color:'var(--app-text)',padding:'16px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
         <h2 style={{margin:0}}>{role.toUpperCase()} - {user?.fullName}</h2>
-        <button onClick={()=>{logout(); nav('/login');}} style={btn('#ef4444')}>Logout</button>
+        <div style={{display:'flex',alignItems:'center',gap:10}}><ThemeToggle /><button onClick={()=>{logout(); nav('/login',{replace:true});}} style={btn('#ef4444')}>Logout</button></div>
       </div>
-      <p style={{color:'#94a3b8'}}>ID: {user?.uniqueId}</p>
+      <p style={{color:'var(--app-muted)'}}>ID: {user?.uniqueId}</p>
 
       {(isStaff||isOwner) && stats && (
         <div style={{display:'flex',gap:'10px',flexWrap:'wrap',margin:'12px 0'}}>
-          <div style={card}><small style={{color:'#94a3b8'}}>Properties</small><h3 style={{margin:'4px 0'}}>{stats.properties}</h3></div>
-          <div style={card}><small style={{color:'#94a3b8'}}>Bookings (pending)</small><h3 style={{margin:'4px 0'}}>{stats.bookings} ({stats.pendingBookings})</h3></div>
-          <div style={card}><small style={{color:'#94a3b8'}}>Maintenance (open)</small><h3 style={{margin:'4px 0'}}>{stats.maintenance} ({stats.openMaint})</h3></div>
-          <div style={card}><small style={{color:'#94a3b8'}}>Rent Due ₹</small><h3 style={{margin:'4px 0',color:'#f59e0b'}}>{stats.pendingAmount}</h3></div>
-          <div style={card}><small style={{color:'#94a3b8'}}>Rent Collected ₹</small><h3 style={{margin:'4px 0',color:'#22c55e'}}>{stats.collectedAmount}</h3></div>
+          <div style={card}><small style={{color:'var(--app-muted)'}}>Properties</small><h3 style={{margin:'4px 0'}}>{stats.properties}</h3></div>
+          <div style={card}><small style={{color:'var(--app-muted)'}}>Bookings (pending)</small><h3 style={{margin:'4px 0'}}>{stats.bookings} ({stats.pendingBookings})</h3></div>
+          <div style={card}><small style={{color:'var(--app-muted)'}}>Maintenance (open)</small><h3 style={{margin:'4px 0'}}>{stats.maintenance} ({stats.openMaint})</h3></div>
+          <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Due ₹</small><h3 style={{margin:'4px 0',color:'#f59e0b'}}>{stats.pendingAmount}</h3></div>
+          <div style={card}><small style={{color:'var(--app-muted)'}}>Rent Collected ₹</small><h3 style={{margin:'4px 0',color:'#22c55e'}}>{stats.collectedAmount}</h3></div>
         </div>
       )}
 
       {(isStaff||isOwner) && charts && (
         <div style={{margin:'12px 0',display:'grid',gap:'12px'}}>
-          <div style={{background:'#1e293b',padding:'14px',borderRadius:'10px'}}>
+          <div style={{background:'var(--app-card)',padding:'14px',borderRadius:'10px'}}>
             <b>Monthly Rent Collected</b>
             {charts.monthlyData.length>0 ? (
               <ResponsiveContainer width="100%" height={220}>
                 <BarChart data={charts.monthlyData}>
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} />
-                  <YAxis stroke="#94a3b8" fontSize={12} />
-                  <Tooltip contentStyle={{background:'#0f172a',border:'1px solid #334155'}} />
+                  <XAxis dataKey="month" stroke="var(--app-muted)" fontSize={12} />
+                  <YAxis stroke="var(--app-muted)" fontSize={12} />
+                  <Tooltip contentStyle={{background:'var(--app-bg)',border:'1px solid var(--app-border)'}} />
                   <Bar dataKey="amount" fill="#22c55e" radius={[4,4,0,0]} />
                 </BarChart>
               </ResponsiveContainer>
-            ) : <p style={{color:'#94a3b8'}}>No rent data yet.</p>}
+            ) : <p style={{color:'var(--app-muted)'}}>No rent data yet.</p>}
           </div>
           <div style={{display:'flex',gap:'12px',flexWrap:'wrap'}}>
-            <div style={{background:'#1e293b',padding:'14px',borderRadius:'10px',flex:'1',minWidth:'260px'}}>
+            <div style={{background:'var(--app-card)',padding:'14px',borderRadius:'10px',flex:'1',minWidth:'260px'}}>
               <b>Bookings by Status</b>
               {charts.bookingData.length>0 ? (
                 <ResponsiveContainer width="100%" height={200}>
@@ -199,13 +200,13 @@ export default function Dashboard(){
                     <Pie data={charts.bookingData} dataKey="value" nameKey="name" outerRadius={70} label>
                       {charts.bookingData.map((e,i)=><Cell key={i} fill={COLORS[i%COLORS.length]} />)}
                     </Pie>
-                    <Tooltip contentStyle={{background:'#0f172a',border:'1px solid #334155'}} />
+                    <Tooltip contentStyle={{background:'var(--app-bg)',border:'1px solid var(--app-border)'}} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
-              ) : <p style={{color:'#94a3b8'}}>No booking data yet.</p>}
+              ) : <p style={{color:'var(--app-muted)'}}>No booking data yet.</p>}
             </div>
-            <div style={{background:'#1e293b',padding:'14px',borderRadius:'10px',flex:'1',minWidth:'260px'}}>
+            <div style={{background:'var(--app-card)',padding:'14px',borderRadius:'10px',flex:'1',minWidth:'260px'}}>
               <b>Properties by Type</b>
               {charts.typeData.length>0 ? (
                 <ResponsiveContainer width="100%" height={200}>
@@ -213,11 +214,11 @@ export default function Dashboard(){
                     <Pie data={charts.typeData} dataKey="value" nameKey="name" outerRadius={70} label>
                       {charts.typeData.map((e,i)=><Cell key={i} fill={COLORS[(i+2)%COLORS.length]} />)}
                     </Pie>
-                    <Tooltip contentStyle={{background:'#0f172a',border:'1px solid #334155'}} />
+                    <Tooltip contentStyle={{background:'var(--app-bg)',border:'1px solid var(--app-border)'}} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>
-              ) : <p style={{color:'#94a3b8'}}>No property data yet.</p>}
+              ) : <p style={{color:'var(--app-muted)'}}>No property data yet.</p>}
             </div>
           </div>
         </div>
@@ -225,7 +226,7 @@ export default function Dashboard(){
 
       <div style={{display:'flex',gap:'8px',flexWrap:'wrap',margin:'12px 0'}}>
         {tabs.map(([key,label])=>(
-          <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',borderRadius:'8px',border:'none',background: tab===key ? '#3b82f6' : '#1e293b', color:'#fff', fontWeight: tab===key?'bold':'normal', cursor:'pointer'}}>{label}</button>
+          <button key={key} onClick={()=>setTab(key)} style={{padding:'10px 18px',borderRadius:'8px',border:'none',background: tab===key ? '#3b82f6' : 'var(--app-card)', color:'var(--app-text)', fontWeight: tab===key?'bold':'normal', cursor:'pointer'}}>{label}</button>
         ))}
       </div>
 
@@ -256,59 +257,59 @@ export default function Dashboard(){
         </>)}
         <h3>{isOwner ? 'My Properties' : 'Properties ('+myProps.length+')'}</h3>
         {myProps.map(p=>(
-          <div key={p._id} style={{background:'#1e293b',padding:'12px',margin:'8px 0',borderRadius:'10px'}}>
+          <div key={p._id} style={{background:'var(--app-card)',padding:'12px',margin:'8px 0',borderRadius:'10px'}}>
             {p.image && <img src={p.image} alt="" style={{width:'100%',maxHeight:'200px',objectFit:'cover',borderRadius:'8px',marginBottom:'8px'}} />}
             <b>{p.title}</b> - {p.type} - ₹{p.price}<br/>
-            <small style={{color:'#94a3b8'}}>{p.address}, {p.city} | {p.area} sqft</small>
+            <small style={{color:'var(--app-muted)'}}>{p.address}, {p.city} | {p.area} sqft</small>
             {revSummary[p._id] && (
               <div style={{marginTop:'4px'}}>
                 <span>⭐ {revSummary[p._id].avg}</span>{' '}
-                <small style={{color:'#94a3b8'}}>({revSummary[p._id].count} reviews)</small>{' '}
+                <small style={{color:'var(--app-muted)'}}>({revSummary[p._id].count} reviews)</small>{' '}
                 <button onClick={()=>toggleReviews(p._id)} style={{background:'none',border:'none',color:'#60a5fa',cursor:'pointer',fontSize:'12px'}}>{revFor===p._id?'Hide':'View'}</button>
               </div>
             )}
             {revFor===p._id && (
-              <div style={{marginTop:'6px',background:'#0f172a',padding:'8px',borderRadius:'6px'}}>
+              <div style={{marginTop:'6px',background:'var(--app-bg)',padding:'8px',borderRadius:'6px'}}>
                 {revList.map(rv=>(
-                  <div key={rv._id} style={{padding:'6px 0',borderBottom:'1px solid #1e293b',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px'}}>
-                    <div><b>{rv.tenant?.fullName}</b>: {'⭐'.repeat(rv.rating)}<br/><small style={{color:'#94a3b8'}}>{rv.comment}</small></div>
+                  <div key={rv._id} style={{padding:'6px 0',borderBottom:'1px solid var(--app-card)',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px'}}>
+                    <div><b>{rv.tenant?.fullName}</b>: {'⭐'.repeat(rv.rating)}<br/><small style={{color:'var(--app-muted)'}}>{rv.comment}</small></div>
                     {isStaff && <button onClick={()=>delReview(rv._id, p._id)} style={btn('#ef4444')}>X</button>}
                   </div>
                 ))}
-                {revList.length===0 && <small style={{color:'#94a3b8'}}>No reviews yet.</small>}
+                {revList.length===0 && <small style={{color:'var(--app-muted)'}}>No reviews yet.</small>}
               </div>
             )}
             <div style={{marginTop:'8px',display:'flex',gap:'8px',flexWrap:'wrap'}}>
-              {isTenant && <><button onClick={()=>bookProp(p._id)} style={btn('#3b82f6')}>Book</button><button onClick={()=>reqMaint(p._id)} style={btn('#f59e0b')}>Maintenance</button><button onClick={()=>addReview(p._id)} style={btn('#8b5cf6')}>Review</button><button onClick={()=>toggleWish(p._id)} style={{background:'#1e293b',border:'1px solid #ef4444',borderRadius:'6px',padding:'8px 12px',cursor:'pointer',fontSize:'16px'}}>{wishIds.includes(String(p._id))?'❤️':'🤍'}</button></>}
+              {isTenant && <><button onClick={()=>bookProp(p._id)} style={btn('#3b82f6')}>Book</button><button onClick={()=>reqMaint(p._id)} style={btn('#f59e0b')}>Maintenance</button><button onClick={()=>addReview(p._id)} style={btn('#8b5cf6')}>Review</button><button onClick={()=>toggleWish(p._id)} style={{background:'var(--app-card)',border:'1px solid #ef4444',borderRadius:'6px',padding:'8px 12px',cursor:'pointer',fontSize:'16px'}}>{wishIds.includes(String(p._id))?'❤️':'🤍'}</button></>}
               {isStaff && <button onClick={()=>delProp(p._id)} style={btn('#ef4444')}>Delete</button>}
             </div>
           </div>
         ))}
-        {myProps.length===0 && <p style={{color:'#94a3b8'}}>No properties found.</p>}
+        {myProps.length===0 && <p style={{color:'var(--app-muted)'}}>No properties found.</p>}
       </>)}
 
       {tab==='wishlist' && (<>
         <h3>My Wishlist ({wishItems.length})</h3>
         {wishItems.map(w=>(
-          <div key={w._id} style={{background:'#1e293b',padding:'12px',margin:'8px 0',borderRadius:'10px'}}>
+          <div key={w._id} style={{background:'var(--app-card)',padding:'12px',margin:'8px 0',borderRadius:'10px'}}>
             {w.property.image && <img src={w.property.image} alt="" style={{width:'100%',maxHeight:'200px',objectFit:'cover',borderRadius:'8px',marginBottom:'8px'}} />}
             <b>{w.property.title}</b> - {w.property.type} - ₹{w.property.price}<br/>
-            <small style={{color:'#94a3b8'}}>{w.property.city}</small>
+            <small style={{color:'var(--app-muted)'}}>{w.property.city}</small>
             <div style={{marginTop:'8px',display:'flex',gap:'8px'}}>
               <button onClick={()=>bookProp(w.property._id)} style={btn('#3b82f6')}>Book</button>
               <button onClick={()=>toggleWish(w.property._id)} style={btn('#ef4444')}>Remove ❤️</button>
             </div>
           </div>
         ))}
-        {wishItems.length===0 && <p style={{color:'#94a3b8'}}>No favorites yet. Tap 🤍 on properties.</p>}
+        {wishItems.length===0 && <p style={{color:'var(--app-muted)'}}>No favorites yet. Tap 🤍 on properties.</p>}
       </>)}
 
       {tab==='bookings' && (<>
         <h3>{isTenant ? 'My Bookings' : 'Bookings ('+bookings.length+')'}</h3>
         {bookings.map(b=>(
-          <div key={b._id} style={{background:'#1e293b',padding:'10px',margin:'6px 0',borderRadius:'8px'}}>
+          <div key={b._id} style={{background:'var(--app-card)',padding:'10px',margin:'6px 0',borderRadius:'8px'}}>
             <b>{b.property?.title}</b>{b.tenant?.fullName && <> by {b.tenant.fullName}</>} - <span style={{color:stColor(b.status)}}>{b.status||'pending'}</span>
-            {b.message && <div><small style={{color:'#94a3b8'}}>{b.message}</small></div>}
+            {b.message && <div><small style={{color:'var(--app-muted)'}}>{b.message}</small></div>}
             {(isStaff||isOwner) && b.status!=='approved' && b.status!=='rejected' && (
               <div style={{marginTop:'6px',display:'flex',gap:'6px'}}>
                 <button onClick={()=>updateBooking(b._id,'approved')} style={btn('#22c55e')}>Approve</button>
@@ -317,15 +318,15 @@ export default function Dashboard(){
             )}
           </div>
         ))}
-        {bookings.length===0 && <p style={{color:'#94a3b8'}}>No bookings.</p>}
+        {bookings.length===0 && <p style={{color:'var(--app-muted)'}}>No bookings.</p>}
       </>)}
 
       {(tab==='maintenance'||tab==='tasks') && (<>
         <h3>{isTenant ? 'My Maintenance Requests' : isMaint ? 'Assigned Tasks' : 'Maintenance ('+maint.length+')'}</h3>
         {maint.map(m=>(
-          <div key={m._id} style={{background:'#334155',padding:'10px',margin:'6px 0',borderRadius:'8px'}}>
+          <div key={m._id} style={{background:'var(--app-border)',padding:'10px',margin:'6px 0',borderRadius:'8px'}}>
             <b>{m.property?.title}</b> - {m.issue}
-            {m.tenant?.fullName && <><br/><small style={{color:'#94a3b8'}}>by {m.tenant.fullName}</small></>} - <span style={{color:stColor(m.status)}}>{m.status||'pending'}</span>
+            {m.tenant?.fullName && <><br/><small style={{color:'var(--app-muted)'}}>by {m.tenant.fullName}</small></>} - <span style={{color:stColor(m.status)}}>{m.status||'pending'}</span>
             {(isStaff||isOwner||isMaint) && m.status!=='done' && (
               <div style={{marginTop:'6px',display:'flex',gap:'6px',flexWrap:'wrap'}}>
                 <button onClick={()=>updateMaint(m._id,'in-progress')} style={btn('#f59e0b')}>Start</button>
@@ -334,13 +335,13 @@ export default function Dashboard(){
             )}
           </div>
         ))}
-        {maint.length===0 && <p style={{color:'#94a3b8'}}>No maintenance requests.</p>}
+        {maint.length===0 && <p style={{color:'var(--app-muted)'}}>No maintenance requests.</p>}
       </>)}
 
       {tab==='rents' && (<>
         <h3>{isTenant ? 'My Rents' : 'Rents ('+rents.length+')'}</h3>
         {(isStaff||isOwner) && (
-          <form onSubmit={addRent} style={{display:'grid',gap:'8px',maxWidth:'500px',marginBottom:'16px',background:'#1e293b',padding:'14px',borderRadius:'10px'}}>
+          <form onSubmit={addRent} style={{display:'grid',gap:'8px',maxWidth:'500px',marginBottom:'16px',background:'var(--app-card)',padding:'14px',borderRadius:'10px'}}>
             <b>Add Rent Record</b>
             <select value={rentForm.propertyId} onChange={e=>setRentForm({...rentForm,propertyId:e.target.value})} required style={inp}>
               <option value="">Select Property</option>
@@ -353,10 +354,10 @@ export default function Dashboard(){
           </form>
         )}
         {rents.map(r=>(
-          <div key={r._id} style={{background:'#1e293b',padding:'10px',margin:'6px 0',borderRadius:'8px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'8px'}}>
+          <div key={r._id} style={{background:'var(--app-card)',padding:'10px',margin:'6px 0',borderRadius:'8px',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'8px'}}>
             <div>
               <b>{r.property?.title}</b> - {r.month} - ₹{r.amount}
-              {r.tenant?.fullName && <><br/><small style={{color:'#94a3b8'}}>{r.tenant.fullName}</small></>}
+              {r.tenant?.fullName && <><br/><small style={{color:'var(--app-muted)'}}>{r.tenant.fullName}</small></>}
               {' '}- <span style={{color:stColor(r.status)}}>{r.status}</span>
             </div>
             <div style={{display:'flex',gap:'6px'}}>
@@ -369,22 +370,22 @@ export default function Dashboard(){
             </div>
           </div>
         ))}
-        {rents.length===0 && <p style={{color:'#94a3b8'}}>No rent records.</p>}
+        {rents.length===0 && <p style={{color:'var(--app-muted)'}}>No rent records.</p>}
       </>)}
 
       {tab==='leases' && (<>
         <h3>{isTenant ? 'My Leases' : 'Leases ('+leases.length+')'}</h3>
         {(isStaff||isOwner) && (
-          <form onSubmit={addLease} style={{display:'grid',gap:'8px',maxWidth:'500px',marginBottom:'16px',background:'#1e293b',padding:'14px',borderRadius:'10px'}}>
+          <form onSubmit={addLease} style={{display:'grid',gap:'8px',maxWidth:'500px',marginBottom:'16px',background:'var(--app-card)',padding:'14px',borderRadius:'10px'}}>
             <b>New Lease Agreement</b>
             <select value={leaseForm.propertyId} onChange={e=>setLeaseForm({...leaseForm,propertyId:e.target.value})} required style={inp}>
               <option value="">Select Property</option>
               {myProps.map(p=><option key={p._id} value={p._id}>{p.title} - {p.city}</option>)}
             </select>
             <input placeholder="Tenant Email or ID" value={leaseForm.tenantEmailOrId} onChange={e=>setLeaseForm({...leaseForm,tenantEmailOrId:e.target.value})} required style={inp} />
-            <label style={{fontSize:'12px',color:'#94a3b8'}}>Start Date</label>
+            <label style={{fontSize:'12px',color:'var(--app-muted)'}}>Start Date</label>
             <input type="date" value={leaseForm.startDate} onChange={e=>setLeaseForm({...leaseForm,startDate:e.target.value})} required style={inp} />
-            <label style={{fontSize:'12px',color:'#94a3b8'}}>End Date</label>
+            <label style={{fontSize:'12px',color:'var(--app-muted)'}}>End Date</label>
             <input type="date" value={leaseForm.endDate} onChange={e=>setLeaseForm({...leaseForm,endDate:e.target.value})} required style={inp} />
             <input placeholder="Monthly Rent ₹" type="number" value={leaseForm.monthlyRent} onChange={e=>setLeaseForm({...leaseForm,monthlyRent:e.target.value})} required style={inp} />
             <input placeholder="Deposit ₹ (optional)" type="number" value={leaseForm.deposit} onChange={e=>setLeaseForm({...leaseForm,deposit:e.target.value})} style={inp} />
@@ -393,15 +394,15 @@ export default function Dashboard(){
           </form>
         )}
         {leases.map(l=>(
-          <div key={l._id} style={{background:'#1e293b',padding:'12px',margin:'8px 0',borderRadius:'10px',borderLeft: l.status==='active'&&l.daysRemaining<=30&&l.daysRemaining>=0 ? '4px solid #f59e0b' : '4px solid transparent'}}>
+          <div key={l._id} style={{background:'var(--app-card)',padding:'12px',margin:'8px 0',borderRadius:'10px',borderLeft: l.status==='active'&&l.daysRemaining<=30&&l.daysRemaining>=0 ? '4px solid #f59e0b' : '4px solid transparent'}}>
             <b>{l.property?.title}</b>{l.tenant?.fullName && <> - {l.tenant.fullName}</>}<br/>
-            <small style={{color:'#94a3b8'}}>Period: {fmtD(l.startDate)} → {fmtD(l.endDate)}</small><br/>
+            <small style={{color:'var(--app-muted)'}}>Period: {fmtD(l.startDate)} → {fmtD(l.endDate)}</small><br/>
             <span>Monthly: ₹{l.monthlyRent} | Deposit: ₹{l.deposit}</span><br/>
-            {l.terms && <small style={{color:'#94a3b8'}}>Terms: {l.terms}</small>}
+            {l.terms && <small style={{color:'var(--app-muted)'}}>Terms: {l.terms}</small>}
             <div style={{marginTop:'6px'}}>
               <span style={{color:stColor(l.status),fontWeight:'bold'}}>{l.status.toUpperCase()}</span>
               {l.status==='active' && l.daysRemaining>=0 && l.daysRemaining<=30 && <span style={{color:'#f59e0b'}}> — Expiring in {l.daysRemaining} days!</span>}
-              {l.status==='active' && l.daysRemaining>30 && <small style={{color:'#94a3b8'}}> — {l.daysRemaining} days left</small>}
+              {l.status==='active' && l.daysRemaining>30 && <small style={{color:'var(--app-muted)'}}> — {l.daysRemaining} days left</small>}
               {l.status==='expired' && <span style={{color:'#ef4444'}}> — Expired</span>}
             </div>
             {(isStaff||isOwner) && l.status==='active' && (
@@ -409,7 +410,7 @@ export default function Dashboard(){
             )}
           </div>
         ))}
-        {leases.length===0 && <p style={{color:'#94a3b8'}}>No leases yet.</p>}
+        {leases.length===0 && <p style={{color:'var(--app-muted)'}}>No leases yet.</p>}
       </>)}
     </div>
   );
