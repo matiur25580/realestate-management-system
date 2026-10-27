@@ -10,6 +10,13 @@ const card = { background:'var(--app-card)', padding:'14px', borderRadius:'10px'
 const inp = { padding:'8px', borderRadius:'6px', border:'1px solid #475569' };
 const btn = (bg)=> ({ background:bg, color:'var(--app-text)', border:'none', padding:'8px 16px', borderRadius:'6px', cursor:'pointer' });
 const COLORS = ['#22c55e','#f59e0b','#ef4444','#3b82f6','#8b5cf6'];
+const ROLE_META = {
+  admin:{label:'Admin Dashboard', color:'#ef4444'},
+  agent:{label:'Agent Dashboard', color:'#3b82f6'},
+  owner:{label:'Owner Dashboard', color:'#22c55e'},
+  tenant:{label:'Tenant Dashboard', color:'#f59e0b'},
+  maintenance:{label:'Maintenance Dashboard', color:'#8b5cf6'},
+};
 const fmtD = (d)=> d ? new Date(d).toLocaleDateString() : '';
 
 export default function Dashboard(){
@@ -161,7 +168,13 @@ export default function Dashboard(){
   return (
     <div style={{background:'var(--app-bg)',minHeight:'100vh',color:'var(--app-text)',padding:'16px'}}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
-        <h2 style={{margin:0}}>{role.toUpperCase()} - {user?.fullName}</h2>
+        <div>
+          <div style={{display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
+            <h2 style={{margin:0}}>{(ROLE_META[role]||{}).label||'Dashboard'}</h2>
+            <span style={{background:(ROLE_META[role]||{}).color||'#64748b',color:'#fff',padding:'3px 12px',borderRadius:20,fontSize:12,fontWeight:'bold'}}>{role.toUpperCase()}</span>
+          </div>
+          <div style={{color:'var(--app-muted)',fontSize:13,marginTop:4}}>Welcome, {user?.fullName}</div>
+        </div>
         <div style={{display:'flex',alignItems:'center',gap:10}}><ThemeToggle /><button onClick={()=>{logout(); nav('/login',{replace:true});}} style={btn('#ef4444')}>Logout</button></div>
       </div>
       <p style={{color:'var(--app-muted)'}}>ID: {user?.uniqueId}</p>
