@@ -11,6 +11,8 @@ app.use('/api/auth', require('./routes/otpAuth'));
 app.use('/api/properties', require('./routes/property'));
 app.use('/api/bookings', require('./routes/booking'));
 app.use('/api/maintenance', require('./routes/maintenance'));
+app.use('/api/rents', require('./routes/rent'));
+app.use('/api/analytics', require('./routes/analytics'));
 app.get('/', (req,res)=> res.send('RealEstate API Running'));
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, ()=> console.log(`Server running on port ${PORT}`));

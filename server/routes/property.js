@@ -1,12 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const Property = require('../models/Property');
+const User = require('../models/User');
 const auth = require('../middleware/auth');
+const rl = (req)=> (req.user.role||'').toLowerCase();
 
 router.post('/', auth, async (req,res)=>{
   try{
-    if(!['admin','agent'].includes(req.user.role.toLowerCase())) return res.status(403).json({msg:'Not allowed'});
-    const p = await Property.create({ ...req.body, owner: req.user.id });
+    if(!['admin','agent'].includes(rl(req))) return res.status(403).json({msg:'Not allowed'});
+    let ownerId = null;
+    if(req.body.ownerEmailOrId && req.body.ownerEmailOrId.trim()){
+      const ou = await User.findOne({ $or: [{ email: req.body.ownerEmailOrId.trim() }, { uniqueId: req.body.ownerEmailOrId.trim() }] });
+      if(ou) ownerId = ou._id;
+    }
+    const { ownerEmailOrId, ...data } = req.body;
+    const p = await Property.create({ ...data, price: Number(data.price), owner: req.user.id, ownerId });
     res.json(p);
   }catch(e){ res.status(500).json({msg:e.message}); }
 });
@@ -24,7 +32,7 @@ router.get('/', async (req,res)=>{
 });
 
 router.delete('/:id', auth, async (req,res)=>{
-  if(!['admin','agent'].includes(req.user.role.toLowerCase())) return res.status(403).json({msg:'Not allowed'});
+  if(!['admin','agent'].includes(rl(req))) return res.status(403).json({msg:'Not allowed'});
   await Property.findByIdAndDelete(req.params.id);
   res.json({msg:'Deleted'});
 });
