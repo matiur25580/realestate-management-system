@@ -29,6 +29,9 @@ export default function Dashboard(){
   const [fcity, setFcity] = useState('');
   const [form, setForm] = useState({ title:'', type:'Flat', price:'', area:'', address:'', city:'', image:'', ownerEmailOrId:'' });
   const [rentForm, setRentForm] = useState({ propertyId:'', tenantEmailOrId:'', amount:'', month:'' });
+  const [revSummary, setRevSummary] = useState({});
+  const [revFor, setRevFor] = useState(null);
+  const [revList, setRevList] = useState([]);
 
   const load = async ()=>{
     try{
@@ -38,6 +41,7 @@ export default function Dashboard(){
       if(fcity) url+='city='+encodeURIComponent(fcity)+'&';
       const res = await api.get(url); setProps(res.data);
     }catch(e){}
+    try{ setRevSummary((await api.get('/reviews/summary')).data); }catch(e){}
     try{
       if(isTenant){
         setBookings((await api.get('/bookings/my')).data);
@@ -75,17 +79,49 @@ export default function Dashboard(){
     await api.post('/maintenance', { propertyId: id, issue });
     alert('Maintenance requested'); load();
   };
-  const updateBooking = async (id, status)=>{ await api.put('/bookings/'+id, { status }); load(); };
+  const updateBooking = async (id, status)=>{ await api.put('/bookings/'+id, { status }); alert('Tenant ke email pathano hoyeche'); load(); };
   const updateMaint = async (id, status)=>{ await api.put('/maintenance/'+id, { status }); load(); };
   const addRent = async (e)=>{
     e.preventDefault();
     try{
       await api.post('/rents', { ...rentForm, amount: Number(rentForm.amount) });
       setRentForm({ propertyId:'', tenantEmailOrId:'', amount:'', month:'' });
-      load(); alert('Rent record added');
+      load(); alert('Rent record added, tenant ke email geche');
     }catch(err){ alert(err.response?.data?.message || 'Failed'); }
   };
   const markRentPaid = async (id)=>{ await api.put('/rents/'+id, { status:'paid' }); load(); };
+
+  const addReview = async (pid)=>{
+    const rating = prompt('Rating (1-5):'); if(!rating) return;
+    const r = parseInt(rating);
+    if(!r || r<1 || r>5) return alert('Rating must be 1-5');
+    const comment = prompt('Review comment (optional):') || '';
+    try{ await api.post('/reviews', { propertyId: pid, rating: r, comment }); alert('Review added'); }
+    catch(err){ return alert(err.response?.data?.message||'Failed'); }
+    setRevSummary((await api.get('/reviews/summary')).data);
+    if(revFor===pid) setRevList((await api.get('/reviews/property/'+pid)).data.reviews);
+  };
+  const toggleReviews = async (pid)=>{
+    if(revFor===pid){ setRevFor(null); return; }
+    setRevList((await api.get('/reviews/property/'+pid)).data.reviews);
+    setRevFor(pid);
+  };
+  const delReview = async (rid, pid)=>{
+    if(!confirm('Delete review?')) return;
+    await api.delete('/reviews/'+rid);
+    setRevList((await api.get('/reviews/property/'+pid)).data.reviews);
+    setRevSummary((await api.get('/reviews/summary')).data);
+  };
+  const downloadReceipt = async (id, month)=>{
+    try{
+      const res = await api.get('/rents/'+id+'/receipt', { responseType:'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], {type:'application/pdf'}));
+      const a = document.createElement('a');
+      a.href=url; a.download='rent-receipt-'+month+'.pdf';
+      document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+    }catch(e){ alert('Download failed'); }
+  };
 
   const tabs = isMaint
     ? [['tasks','My Tasks'],['properties','Properties']]
@@ -151,8 +187,26 @@ export default function Dashboard(){
             {p.image && <img src={p.image} alt="" style={{width:'100%',maxHeight:'200px',objectFit:'cover',borderRadius:'8px',marginBottom:'8px'}} />}
             <b>{p.title}</b> - {p.type} - ₹{p.price}<br/>
             <small style={{color:'#94a3b8'}}>{p.address}, {p.city} | {p.area} sqft</small>
+            {revSummary[p._id] && (
+              <div style={{marginTop:'4px'}}>
+                <span>⭐ {revSummary[p._id].avg}</span>{' '}
+                <small style={{color:'#94a3b8'}}>({revSummary[p._id].count} reviews)</small>{' '}
+                <button onClick={()=>toggleReviews(p._id)} style={{background:'none',border:'none',color:'#60a5fa',cursor:'pointer',fontSize:'12px'}}>{revFor===p._id?'Hide':'View'}</button>
+              </div>
+            )}
+            {revFor===p._id && (
+              <div style={{marginTop:'6px',background:'#0f172a',padding:'8px',borderRadius:'6px'}}>
+                {revList.map(rv=>(
+                  <div key={rv._id} style={{padding:'6px 0',borderBottom:'1px solid #1e293b',display:'flex',justifyContent:'space-between',alignItems:'center',gap:'8px'}}>
+                    <div><b>{rv.tenant?.fullName}</b>: {'⭐'.repeat(rv.rating)}<br/><small style={{color:'#94a3b8'}}>{rv.comment}</small></div>
+                    {isStaff && <button onClick={()=>delReview(rv._id, p._id)} style={btn('#ef4444')}>X</button>}
+                  </div>
+                ))}
+                {revList.length===0 && <small style={{color:'#94a3b8'}}>No reviews yet.</small>}
+              </div>
+            )}
             <div style={{marginTop:'8px',display:'flex',gap:'8px',flexWrap:'wrap'}}>
-              {isTenant && <><button onClick={()=>bookProp(p._id)} style={btn('#3b82f6')}>Book</button><button onClick={()=>reqMaint(p._id)} style={btn('#f59e0b')}>Maintenance</button></>}
+              {isTenant && <><button onClick={()=>bookProp(p._id)} style={btn('#3b82f6')}>Book</button><button onClick={()=>reqMaint(p._id)} style={btn('#f59e0b')}>Maintenance</button><button onClick={()=>addReview(p._id)} style={btn('#8b5cf6')}>Review</button></>}
               {isStaff && <button onClick={()=>delProp(p._id)} style={btn('#ef4444')}>Delete</button>}
             </div>
           </div>
@@ -216,11 +270,14 @@ export default function Dashboard(){
               {r.tenant?.fullName && <><br/><small style={{color:'#94a3b8'}}>{r.tenant.fullName}</small></>}
               {' '}- <span style={{color:stColor(r.status)}}>{r.status}</span>
             </div>
-            {r.status!=='paid' && (
-              isTenant
-                ? <button onClick={()=>markRentPaid(r._id)} style={btn('#22c55e')}>Pay Now</button>
-                : <button onClick={()=>markRentPaid(r._id)} style={btn('#3b82f6')}>Mark Paid</button>
-            )}
+            <div style={{display:'flex',gap:'6px'}}>
+              {r.status==='paid' && <button onClick={()=>downloadReceipt(r._id, r.month)} style={btn('#8b5cf6')}>Receipt</button>}
+              {r.status!=='paid' && (
+                isTenant
+                  ? <button onClick={()=>markRentPaid(r._id)} style={btn('#22c55e')}>Pay Now</button>
+                  : <button onClick={()=>markRentPaid(r._id)} style={btn('#3b82f6')}>Mark Paid</button>
+              )}
+            </div>
           </div>
         ))}
         {rents.length===0 && <p style={{color:'#94a3b8'}}>No rent records.</p>}

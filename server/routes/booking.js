@@ -3,6 +3,7 @@ const router = express.Router();
 const Booking = require('../models/Booking');
 const Property = require('../models/Property');
 const auth = require('../middleware/auth');
+const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 
 router.post('/', auth, async (req, res) => {
@@ -34,7 +35,14 @@ router.put('/:id', auth, async (req, res) => {
   const r = rl(req);
   if(!['admin','agent','owner'].includes(r)) return res.status(403).json({ msg: 'Not allowed' });
   const { status } = req.body;
-  await Booking.findByIdAndUpdate(req.params.id, { status });
+  const booking = await Booking.findByIdAndUpdate(req.params.id, { status }, { new: true }).populate('tenant','fullName email').populate('property','title');
+  if(booking && booking.tenant && booking.tenant.email){
+    try{
+      const ok = status==='approved';
+      await sendEmail(booking.tenant.email, ok?'Booking Approved':'Booking Update',
+        'Hi '+booking.tenant.fullName+',\n\nYour booking for "'+(booking.property?booking.property.title:'the property')+'" has been '+String(status).toUpperCase()+'.'+(ok?'\n\nOur team will contact you soon.':'')+'\n\n- RealEstate Management System');
+    }catch(e){ console.log('Booking email failed:', e.message); }
+  }
   res.json({ msg: 'Booking '+status });
 });
 
