@@ -2,6 +2,11 @@ const express = require('express');
 const { randomInt } = require('node:crypto');
 const { isPublicSignupRole } = require('../config/signupPolicy');
 const { logAudit } = require('../utils/audit');
+const createRateLimit = require('../middleware/rateLimit');
+
+const registerLimit = createRateLimit({ max: 5, message: 'Too many registration attempts. Please try again later.' });
+const loginLimit = createRateLimit({ max: 10, message: 'Too many login attempts. Please try again later.' });
+const otpLimit = createRateLimit({ max: 5, message: 'Too many OTP attempts. Please try again later.' });
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
@@ -11,7 +16,7 @@ const sendEmail = require('../utils/sendEmail');
 const router = express.Router();
 
 // Public registration is intentionally restricted to Tenant accounts.
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimit, async (req, res) => {
   try {
     const fullName = typeof req.body.fullName === 'string' ? req.body.fullName.trim() : '';
     const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
@@ -50,7 +55,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Verify OTP
-router.post('/verify-otp', async (req,res)=>{
+router.post('/verify-otp', otpLimit, async (req,res)=>{
   try{
     const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const otp = typeof req.body.otp === 'string' ? req.body.otp.trim() : '';
@@ -78,7 +83,7 @@ router.post('/verify-otp', async (req,res)=>{
 });
 
 // Login with Email or Unique ID + Role
-router.post('/login', async (req,res)=>{
+router.post('/login', loginLimit, async (req,res)=>{
   try{
     const role = typeof req.body.role === 'string' ? req.body.role.trim() : '';
     const emailOrId = typeof req.body.emailOrId === 'string' ? req.body.emailOrId.trim() : '';
@@ -93,9 +98,9 @@ router.post('/login', async (req,res)=>{
       role,
     });
     if(user && user.isActive===false) return res.status(403).json({msg:'Account deactivated. Contact admin.'});
-    if(!user) return res.status(400).json({ message: "this email doesn't registered, plz first registered" });
+    if(!user) return res.status(401).json({ message: 'Invalid credentials.' });
     const ok = await bcrypt.compare(password, user.password);
-    if(!ok) return res.status(400).json({ message: 'Invalid credentials' });
+    if(!ok) return res.status(401).json({ message: 'Invalid credentials.' });
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '7d' });
     await logAudit({ user: { id: user._id, fullName: user.fullName, role: user.role } }, 'Login', 'Logged in');
     res.json({ token, role: user.role, uniqueId: user.uniqueId, fullName: user.fullName });
@@ -103,12 +108,13 @@ router.post('/login', async (req,res)=>{
 });
 
 // Forgot Password - reset OTP pathao
-router.post('/forgot-password', async (req,res)=>{
+router.post('/forgot-password', otpLimit, async (req,res)=>{
   try{
-    const email = (req.body.email || '').trim();
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return res.status(400).json({ message: 'Enter a valid email address.' });
     const user = await User.findOne({ email });
-    if(!user) return res.status(404).json({ message: "this email doesn't registered, plz first registered" });
     await Otp.deleteMany({ email });
+    if (!user) return res.json({ message: 'If the account exists, a password reset OTP has been sent.' });
     const otpCode = randomInt(100000, 1000000).toString();
     await Otp.create({ email, otp: otpCode });
     await sendEmail(email, 'Password Reset OTP', `Your password reset OTP is ${otpCode}. Valid for 5 minutes.`);
@@ -117,12 +123,13 @@ router.post('/forgot-password', async (req,res)=>{
 });
 
 // Reset Password - OTP verify kore notun password set
-router.post('/reset-password', async (req,res)=>{
+router.post('/reset-password', otpLimit, async (req,res)=>{
   try{
-    const email = (req.body.email || '').trim();
+    const email = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const { otp, newPassword } = req.body;
-    if(!newPassword || newPassword.length < 6) return res.status(400).json({ message: 'Password minimum 6 characters' });
-    const record = await Otp.findOne({ email, otp });
+    if (typeof newPassword !== 'string' || newPassword.length < 8 || newPassword.length > 128) return res.status(400).json({ message: 'Password must be 8–128 characters.' });
+    if (!/^\\d{6}$/.test(String(otp || ''))) return res.status(400).json({ message: 'Invalid or expired OTP.' });
+    const record = await Otp.findOneAndDelete({ email, otp });
     if(!record) return res.status(400).json({ message: 'Invalid or expired OTP' });
     const user = await User.findOne({ email });
     if(!user) return res.status(404).json({ message: 'User not found' });
@@ -132,7 +139,7 @@ router.post('/reset-password', async (req,res)=>{
     await user.save();
     await Otp.deleteMany({ email });
     res.json({ message: 'Password reset successful. Please login with new password.' });
-  }catch(e){ res.status(500).json({ message: e.message }); }
+  }catch(e){ console.error('Password reset failed:', e); res.status(500).json({ message: 'Could not reset password.' }); }
 });
 
 module.exports = router;
