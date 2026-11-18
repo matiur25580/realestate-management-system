@@ -43,9 +43,7 @@ export default function Register(){
         <input placeholder="DDMMYYYY (8 digits)" value={form.dob} onChange={set('dob')} className="auth-inp" style={inp} required />
 
         <label style={label}>Account Role</label>
-        <select value={form.role} onChange={set('role')} className="auth-inp" style={inp}>
-          <option>Admin</option><option>Agent</option><option>Owner</option><option>Tenant</option><option>Maintenance</option>
-        </select>
+        <input value="Tenant" className="auth-inp" style={inp} readOnly aria-readonly="true" />
 
         <label style={label}>Password</label>
         <input type="password" placeholder="Create password" value={form.password} onChange={set('password')} className="auth-inp" style={inp} required />
