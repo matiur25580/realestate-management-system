@@ -101,7 +101,7 @@ The generated static site is written to `client/dist`. Deploy the API and fronte
 
 ## Tests and verification
 
-The backend includes Node.js tests for origin validation and public signup role policy. Run `npm test` from `server/`. Run the frontend production build and verify authentication, property CRUD, bookings, rent, uploads, and email flows against a dedicated test database before production use.
+The backend includes Node.js tests for origin validation, public signup role policy, and the in-memory authentication rate limiter. Run `npm test` from `server/`. Run the frontend production build and verify authentication, property CRUD, bookings, rent, uploads, and email flows against a dedicated test database before production use.
 
 ## Security notes
 
@@ -111,6 +111,7 @@ The backend includes Node.js tests for origin validation and public signup role 
 - Configure `CLIENT_URL` with comma-separated exact frontend origins; production startup rejects missing, wildcard, or malformed origin configuration.
 - Public signup is restricted server-side to Tenant. Hiding privileged roles in the UI is not treated as an authorization boundary.
 - API requests have a 1 MB JSON body limit, baseline security headers, structured error responses, and JWT validation restricted to HS256.
+- Registration, login, and OTP endpoints have per-process in-memory throttles. These limits are not shared across multiple API instances; use a shared store such as Redis before horizontal scaling. Configure Express proxy trust only for the actual trusted reverse-proxy topology.
 - Do not use real tenant or financial data in a public demo.
 
 ## Maintainer
