@@ -101,14 +101,16 @@ The generated static site is written to `client/dist`. Deploy the API and fronte
 
 ## Tests and verification
 
-The backend package currently has no automated test suite configured: its `test` script is a placeholder that exits with an error. Run the frontend production build and verify authentication, property CRUD, bookings, rent, uploads, and email flows against a dedicated test database before production use.
+The backend includes Node.js tests for origin validation and public signup role policy. Run `npm test` from `server/`. Run the frontend production build and verify authentication, property CRUD, bookings, rent, uploads, and email flows against a dedicated test database before production use.
 
 ## Security notes
 
 - Never commit `.env` files or real credentials.
 - Use a unique, high-entropy `JWT_SECRET` in each environment.
 - Restrict database network access and use a least-privilege database user.
-- Configure CORS for the exact frontend origin in production.
+- Configure `CLIENT_URL` with comma-separated exact frontend origins; production startup rejects missing, wildcard, or malformed origin configuration.
+- Public signup is restricted server-side to Tenant. Hiding privileged roles in the UI is not treated as an authorization boundary.
+- API requests have a 1 MB JSON body limit, baseline security headers, structured error responses, and JWT validation restricted to HS256.
 - Do not use real tenant or financial data in a public demo.
 
 ## Maintainer
