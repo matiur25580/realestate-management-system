@@ -120,3 +120,9 @@ Matiur Rahaman
 
 ---
 This project is provided for learning, portfolio demonstration, and further development. Review and test all workflows before using it in a real property-management environment.
+
+## Live Demo
+
+**Frontend:** [Open Live Demo](https://realestate-management-system-psi.vercel.app)
+
+> This link points to the deployed frontend. Features that depend on the API, database, email, file storage, or other external services may require the corresponding backend services and environment variables to be configured. Use test data only; this demo is not a production service.
