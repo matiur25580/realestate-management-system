@@ -492,7 +492,7 @@ export default function Dashboard(){
               {r.status==='paid' && <button onClick={()=>downloadReceipt(r._id, r.month)} style={btn('#8b5cf6')}>Receipt</button>}
               {r.status!=='paid' && (
                 isTenant
-                  ? <button onClick={()=>markRentPaid(r._id)} style={btn('#22c55e')}>Pay Now</button>
+                  ? <small style={{color:'var(--app-muted)'}}>Online payment is not configured. Contact your property manager to confirm payment.</small>
                   : <button onClick={()=>markRentPaid(r._id)} style={btn('#3b82f6')}>Mark Paid</button>
               )}
             </div>
