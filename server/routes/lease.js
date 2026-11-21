@@ -7,15 +7,12 @@ const auth = require('../middleware/auth');
 const { logAudit } = require('../utils/audit');
 const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
+const { propertyManagerFilter } = require('../utils/propertyAccess');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 
 const propertyForManager = async (req, propertyId) => {
-  const role = rl(req);
-  if (role === 'admin') return Property.findById(propertyId);
-  const query = role === 'owner'
-    ? { _id: propertyId, $or: [{ ownerId: req.user.id }, { owner: req.user.id }] }
-    : { _id: propertyId, agentId: req.user.id };
-  return Property.findOne(query);
+  const filter = propertyManagerFilter(req.user, propertyId);
+  return filter ? Property.findOne(filter) : null;
 };
 
 const withComputed = (l)=>{
@@ -27,12 +24,9 @@ const withComputed = (l)=>{
 };
 
 const scopedIds = async (req)=>{
-  const r = rl(req);
-  if(r==='admin') return null;
-  const pq = r==='owner'
-    ? { $or: [{ ownerId: req.user.id }, { owner: req.user.id }] }
-    : { agentId: req.user.id };
-  const props = await Property.find(pq).select('_id');
+  const filter = propertyManagerFilter(req.user);
+  if (!filter) return [];
+  const props = await Property.find(filter).select('_id');
   return props.map(p=>p._id);
 };
 
