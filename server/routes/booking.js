@@ -44,15 +44,23 @@ router.put('/:id', auth, async (req, res) => {
   const r = rl(req);
   if(!['admin','agent','owner'].includes(r)) return res.status(403).json({ msg: 'Not allowed' });
   const { status } = req.body;
-  const bk = await Booking.findById(req.params.id).populate('property').populate('tenant','fullName email');
-  if(!bk) return res.status(404).json({ msg: 'Not found' });
-  if(r==='agent' && String(bk.property?.agentId)!==String(req.user.id)) return res.status(403).json({ msg: 'Not allowed' });
+  if(!['approved','rejected'].includes(status)) return res.status(400).json({ msg: 'Status must be approved or rejected' });
+
+  const current = await Booking.findById(req.params.id).populate('property').populate('tenant','fullName email');
+  if(!current) return res.status(404).json({ msg: 'Not found' });
+  if(r==='agent' && String(current.property?.agentId)!==String(req.user.id)) return res.status(403).json({ msg: 'Not allowed' });
   if(r==='owner'){
-    const own = bk.property && (String(bk.property.ownerId)===String(req.user.id) || String(bk.property.owner)===String(req.user.id));
+    const own = current.property && (String(current.property.ownerId)===String(req.user.id) || String(current.property.owner)===String(req.user.id));
     if(!own) return res.status(403).json({ msg: 'Not allowed' });
   }
-  bk.status = status;
-  await bk.save();
+
+  const bk = await Booking.findOneAndUpdate(
+    { _id: current._id, status: 'pending' },
+    { $set: { status } },
+    { new: true, runValidators: true }
+  ).populate('property').populate('tenant','fullName email');
+  if(!bk) return res.status(409).json({ msg: 'Booking is no longer pending; refresh and try again' });
+
   logAudit(req,'Booking '+status,'Booking for "'+(bk.property?bk.property.title:'')+'" '+status);
   await notify(bk.tenant?._id||bk.tenant, 'Booking '+String(status).toUpperCase(), 'Your booking for "'+(bk.property?bk.property.title:'a property')+'" has been '+status+'.', status==='approved'?'success':'info');
   if(status==='approved' && bk.property && bk.property.agentId){
@@ -71,12 +79,11 @@ router.put('/:id', auth, async (req, res) => {
     try{
       const ok = status==='approved';
       await sendEmail(bk.tenant.email, ok?'Booking Approved':'Booking Update',
-        'Hi '+bk.tenant.fullName+',\n\nYour booking for "'+(bk.property?bk.property.title:'the property')+'" has been '+String(status).toUpperCase()+'.'+(ok?'\n\nOur team will contact you soon.':'')+'\n\n- RealEstate Management System');
+        'Hi '+bk.tenant.fullName+',\\n\\nYour booking for "'+(bk.property?bk.property.title:'the property')+'" has been '+String(status).toUpperCase()+'.'+(ok?'\\n\\nOur team will contact you soon.':'')+'\\n\\n- RealEstate Management System');
     }catch(e){ console.log('Booking email failed:', e.message); }
   }
   res.json({ msg: 'Booking '+status });
 });
-
 router.delete('/:id', auth, async (req, res) => {
   const b = await Booking.findById(req.params.id);
   if(!b) return res.status(404).json({ msg: 'Not found' });
