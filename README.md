@@ -126,3 +126,80 @@ This project is provided for learning, portfolio demonstration, and further deve
 **Frontend:** [Open Live Demo](https://realestate-management-system-psi.vercel.app)
 
 > This link points to the deployed frontend. Features that depend on the API, database, email, file storage, or other external services may require the corresponding backend services and environment variables to be configured. Use test data only; this demo is not a production service.
+
+
+## Dashboard Gallery
+
+Explore 12 illustrative workspaces for property portfolios, listings, leases, rent collection, maintenance, owners and agents, tenants, bookings, inspections, finance, compliance and analytics. These are sample-data UI concepts, not live screenshots or actual tenant/financial records.
+
+### 01. Property Portfolio Overview
+
+Inventory, active listings, occupancy and portfolio performance.
+
+![Property Portfolio Overview dashboard preview](docs/readme-dashboard-gallery/dashboard-01.svg)
+
+### 02. Property Listings
+
+Listing status, types, pricing and publication workflow.
+
+![Property Listings dashboard preview](docs/readme-dashboard-gallery/dashboard-02.svg)
+
+### 03. Leasing & Tenancy
+
+Lease lifecycle, move-ins, expirations and tenant status.
+
+![Leasing & Tenancy dashboard preview](docs/readme-dashboard-gallery/dashboard-03.svg)
+
+### 04. Rent Collection
+
+Rent due, collections, arrears and payment reconciliation.
+
+![Rent Collection dashboard preview](docs/readme-dashboard-gallery/dashboard-04.svg)
+
+### 05. Maintenance Requests
+
+Tickets, priority queues, vendor assignments and completion.
+
+![Maintenance Requests dashboard preview](docs/readme-dashboard-gallery/dashboard-05.svg)
+
+### 06. Owner & Agent Workspace
+
+Owner portfolios, agent assignments, commissions and activity.
+
+![Owner & Agent Workspace dashboard preview](docs/readme-dashboard-gallery/dashboard-06.svg)
+
+### 07. Tenant Management
+
+Tenant profiles, occupancy history, documents and communication.
+
+![Tenant Management dashboard preview](docs/readme-dashboard-gallery/dashboard-07.svg)
+
+### 08. Booking & Applications
+
+Enquiries, viewings, applications and approval stages.
+
+![Booking & Applications dashboard preview](docs/readme-dashboard-gallery/dashboard-08.svg)
+
+### 09. Property Inspections
+
+Schedules, condition reports, action items and follow-ups.
+
+![Property Inspections dashboard preview](docs/readme-dashboard-gallery/dashboard-09.svg)
+
+### 10. Financial Performance
+
+Income, operating costs, commissions and net yield trends.
+
+![Financial Performance dashboard preview](docs/readme-dashboard-gallery/dashboard-10.svg)
+
+### 11. Documents & Compliance
+
+Lease documents, identity checks, certificates and expiry alerts.
+
+![Documents & Compliance dashboard preview](docs/readme-dashboard-gallery/dashboard-11.svg)
+
+### 12. Portfolio Analytics
+
+Occupancy, vacancy, revenue trends and property comparisons.
+
+![Portfolio Analytics dashboard preview](docs/readme-dashboard-gallery/dashboard-12.svg)
