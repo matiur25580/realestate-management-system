@@ -147,6 +147,9 @@ router.get('/managed', auth, async (req, res) => {
       : role === 'agent'
         ? { agentId: req.user.id }
         : { $or: [{ ownerId: req.user.id }, { owner: req.user.id }] };
+    if (typeof req.query.search === 'string' && req.query.search.trim()) query.title = { $regex: req.query.search.trim().slice(0, 80), $options: 'i' };
+    if (typeof req.query.type === 'string' && req.query.type) query.type = req.query.type;
+    if (typeof req.query.city === 'string' && req.query.city.trim()) query.city = { $regex: req.query.city.trim().slice(0, 80), $options: 'i' };
     const list = await Property.find(query).sort({ createdAt: -1 }).limit(500);
     return res.json(list);
   } catch (error) {
