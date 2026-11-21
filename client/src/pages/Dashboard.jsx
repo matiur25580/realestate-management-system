@@ -107,7 +107,7 @@ export default function Dashboard(){
     loadMsgs();
     if(role==='admin'){ loadAudit(); try{ setAuditActions((await api.get('/audit/actions')).data||[]); }catch(e){} }
     try{
-      let url='/properties?';
+      let url=(isStaff||isOwner)?'/properties/managed?':'/properties?';
       if(search) url+='search='+encodeURIComponent(search)+'&';
       if(ftype) url+='type='+ftype+'&';
       if(fcity) url+='city='+encodeURIComponent(fcity)+'&';
@@ -492,7 +492,7 @@ export default function Dashboard(){
               {r.status==='paid' && <button onClick={()=>downloadReceipt(r._id, r.month)} style={btn('#8b5cf6')}>Receipt</button>}
               {r.status!=='paid' && (
                 isTenant
-                  ? <button onClick={()=>markRentPaid(r._id)} style={btn('#22c55e')}>Pay Now</button>
+                  ? <span style={{fontSize:12,color:'var(--app-muted)'}}>Awaiting payment confirmation</span>
                   : <button onClick={()=>markRentPaid(r._id)} style={btn('#3b82f6')}>Mark Paid</button>
               )}
             </div>
