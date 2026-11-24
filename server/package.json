@@ -6,7 +6,8 @@
   "scripts": {
     "test": "node --test",
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "migrate:active-booking-key": "node scripts/migrateActiveBookingKey.js"
   },
   "keywords": [],
   "author": "",
