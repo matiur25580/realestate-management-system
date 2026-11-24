@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
+// Resolves the current account from a verified JWT so route handlers use database-backed roles and status.
 module.exports = async (req, res, next) => {
   try {
     const authorization = req.header('Authorization') || '';
