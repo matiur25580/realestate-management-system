@@ -6,6 +6,8 @@ dotenv.config();
 
 const connectDB = require('./config/db');
 const { parseAllowedOrigins, isAllowedOrigin } = require('./config/originPolicy');
+const Booking = require('./models/Booking');
+const { assertActiveBookingIndex } = require('./utils/activeBookingKey');
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -88,6 +90,7 @@ async function startServer() {
   validateEnvironment();
   configureApp();
   await connectDB();
+  await assertActiveBookingIndex(Booking);
   app.listen(PORT, () => console.log('RealEstate API listening on port ' + PORT));
 }
 
