@@ -1,3 +1,4 @@
+// Builds a role-aware MongoDB filter so managers only query properties within their access scope.
 function propertyManagerFilter(user, propertyId) {
   if (!user) return null;
   const role = String(user.role || '').toLowerCase();
