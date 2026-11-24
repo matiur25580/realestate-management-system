@@ -8,6 +8,7 @@ const { logAudit } = require('../utils/audit');
 const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
+const { isPropertyOwner } = require('../utils/propertyOwnership');
 
 const scopedIds = async (req)=>{
   const r = rl(req);
@@ -44,8 +45,7 @@ router.post('/', auth, async (req, res) => {
       return res.status(404).json({ msg: 'This property is unavailable for booking.' });
     }
 
-    const isOwner = String(property.ownerId || property.owner || '') === String(req.user.id);
-    if (isOwner) {
+    if (isPropertyOwner(property, req.user.id)) {
       return res.status(403).json({ msg: 'You cannot book your own property.' });
     }
 
