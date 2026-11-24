@@ -29,6 +29,16 @@ async function migrate() {
     return;
   }
 
+  const malformedActiveBookings = await Booking.countDocuments({
+    status: { $in: ACTIVE_BOOKING_STATUSES },
+    $or: [{ property: { $exists: false } }, { property: null }, { tenant: { $exists: false } }, { tenant: null }],
+  });
+  if (malformedActiveBookings) {
+    console.error('Migration stopped: ' + malformedActiveBookings + ' active bookings are missing a property or tenant reference. Resolve these records manually before applying the unique constraint.');
+    process.exitCode = 1;
+    return;
+  }
+
   const activeBookings = await Booking.find({
     status: { $in: ACTIVE_BOOKING_STATUSES },
   }).select('_id property tenant').lean();
