@@ -6,6 +6,8 @@ function response() {
   return {
     statusCode: 200,
     body: null,
+    headers: {},
+    setHeader(name, value) { this.headers[name] = value; },
     status(code) { this.statusCode = code; return this; },
     json(body) { this.body = body; return this; },
   };
