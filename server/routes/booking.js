@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const Booking = require('../models/Booking');
 const Property = require('../models/Property');
@@ -20,10 +21,57 @@ const scopedIds = async (req)=>{
 
 router.post('/', auth, async (req, res) => {
   try {
-    const { propertyId, message, visitDate } = req.body;
-    const booking = await Booking.create({ property: propertyId, tenant: req.user.id, message: message||'', visitDate: visitDate||null });
-    res.json({ msg: 'Booking request sent', booking });
-  } catch(e){ res.status(500).json({ msg: e.message }); }
+    const { propertyId, message = '', visitDate = null } = req.body || {};
+
+    if (typeof propertyId !== 'string' || !mongoose.isValidObjectId(propertyId)) {
+      return res.status(400).json({ msg: 'A valid propertyId is required.' });
+    }
+    if (typeof message !== 'string' || message.trim().length > 1000) {
+      return res.status(400).json({ msg: 'Message must be 1,000 characters or fewer.' });
+    }
+
+    let normalizedVisitDate = null;
+    if (visitDate !== null && visitDate !== '') {
+      normalizedVisitDate = new Date(visitDate);
+      if (Number.isNaN(normalizedVisitDate.getTime()) || normalizedVisitDate.getTime() < Date.now()) {
+        return res.status(400).json({ msg: 'Choose a valid future visit date.' });
+      }
+    }
+
+    const property = await Property.findOne({ _id: propertyId, status: 'approved' })
+      .select('_id title owner ownerId');
+    if (!property) {
+      return res.status(404).json({ msg: 'This property is unavailable for booking.' });
+    }
+
+    const isOwner = String(property.ownerId || property.owner || '') === String(req.user.id);
+    if (isOwner) {
+      return res.status(403).json({ msg: 'You cannot book your own property.' });
+    }
+
+    const existingBooking = await Booking.exists({
+      property: property._id,
+      tenant: req.user.id,
+      status: { $in: ['pending', 'approved'] },
+    });
+    if (existingBooking) {
+      return res.status(409).json({ msg: 'You already have an active booking for this property.' });
+    }
+
+    const booking = await Booking.create({
+      property: property._id,
+      tenant: req.user.id,
+      message: message.trim(),
+      visitDate: normalizedVisitDate,
+      status: 'pending',
+    });
+
+    await logAudit(req, 'Booking Requested', 'Booking request submitted for "' + property.title + '"');
+    return res.status(201).json({ msg: 'Booking request sent', booking });
+  } catch (error) {
+    console.error('Booking creation failed:', error.message);
+    return res.status(500).json({ msg: 'Unable to submit your booking request right now.' });
+  }
 });
 
 router.get('/my', auth, async (req, res) => {
