@@ -10,6 +10,7 @@ const { parseAllowedOrigins, isAllowedOrigin } = require('./config/originPolicy'
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
 
+// Fail fast on missing or unsafe deployment settings before the API begins listening.
 function validateEnvironment() {
   if (!process.env.MONGO_URI) throw new Error('MONGO_URI is required.');
   if (!process.env.JWT_SECRET || process.env.JWT_SECRET.length < 32
