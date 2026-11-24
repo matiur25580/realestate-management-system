@@ -43,3 +43,14 @@ test('blocks startup when the unique sparse index is missing', async () => {
   };
   await assert.rejects(assertActiveBookingIndex(Booking), /uniqueness is not ready/);
 });
+
+test('Booking schema declares a unique sparse index for active booking keys', () => {
+  const Booking = require('../models/Booking');
+  const activeIndex = Booking.schema.indexes().find(([keys, options]) =>
+    keys.activeBookingKey === 1 && options.name === ACTIVE_BOOKING_INDEX
+  );
+  assert.ok(activeIndex, 'active booking index should be declared');
+  assert.equal(activeIndex[1].unique, true);
+  assert.equal(activeIndex[1].sparse, true);
+  assert.equal(Booking.schema.path('activeBookingKey').options.select, false);
+});
