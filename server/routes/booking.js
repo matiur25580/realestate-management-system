@@ -9,6 +9,7 @@ const notify = require('../utils/notify');
 const sendEmail = require('../utils/sendEmail');
 const rl = (req)=> (req.user.role||'').toLowerCase();
 const { isPropertyOwner } = require('../utils/propertyOwnership');
+const { makeActiveBookingKey } = require('../utils/activeBookingKey');
 
 const scopedIds = async (req)=>{
   const r = rl(req);
@@ -64,11 +65,15 @@ router.post('/', auth, async (req, res) => {
       message: message.trim(),
       visitDate: normalizedVisitDate,
       status: 'pending',
+      activeBookingKey: makeActiveBookingKey(property._id, req.user.id),
     });
 
     await logAudit(req, 'Booking Requested', 'Booking request submitted for "' + property.title + '"');
     return res.status(201).json({ msg: 'Booking request sent', booking });
   } catch (error) {
+    if (error?.code === 11000) {
+      return res.status(409).json({ msg: 'You already have an active booking for this property.' });
+    }
     console.error('Booking creation failed:', error.message);
     return res.status(500).json({ msg: 'Unable to submit your booking request right now.' });
   }
@@ -104,7 +109,9 @@ router.put('/:id', auth, async (req, res) => {
 
   const bk = await Booking.findOneAndUpdate(
     { _id: current._id, status: 'pending' },
-    { $set: { status } },
+    status === 'rejected'
+      ? { $set: { status }, $unset: { activeBookingKey: 1 } }
+      : { $set: { status } },
     { new: true, runValidators: true }
   ).populate('property').populate('tenant','fullName email');
   if(!bk) return res.status(409).json({ msg: 'Booking is no longer pending; refresh and try again' });
