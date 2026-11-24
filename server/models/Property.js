@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+// Core property listing data, ownership links, media, and moderation status for the real-estate workflow.
 const propertySchema = new mongoose.Schema({
   title: { type: String, required: true },
   type: { type: String, enum: ['Flat','House','Office','Shop'], default: 'Flat' },
