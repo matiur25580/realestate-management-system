@@ -90,6 +90,7 @@ async function startServer() {
   validateEnvironment();
   configureApp();
   await connectDB();
+  await Booking.init();
   await assertActiveBookingIndex(Booking);
   app.listen(PORT, () => console.log('RealEstate API listening on port ' + PORT));
 }
