@@ -7,7 +7,7 @@ const bookingSchema = new mongoose.Schema({
   status: { type: String, default: 'pending' },
   // Present only while a booking is pending or approved.
   activeBookingKey: { type: String, select: false }
-}, { timestamps: true });
+}, { timestamps: true, autoIndex: false });
 
 bookingSchema.index(
   { activeBookingKey: 1 },
